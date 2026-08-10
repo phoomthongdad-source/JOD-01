@@ -158,7 +158,8 @@
   .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
   .search-box { display: flex; align-items: center; gap: 7px; background: var(--panel); border: 1px solid var(--border-soft); border-radius: 8px; padding: 7px 11px; flex: 1; min-width: 180px; color: var(--text-faint); }
   .search-box input { background: none; border: none; outline: none; color: var(--text); font-size: 13px; width: 100%; }
-  select.filter-select, select.form-select, input.form-input, textarea.form-input { background: var(--panel-2); border: 1px solid var(--border); border-radius: 7px; color: var(--text); font-size: 12.5px; padding: 7px 9px; outline: none; font-family: inherit; width: 100%; }
+  select.filter-select, select.form-select, input.form-input, textarea.form-input { background: var(--panel-2); border: 1px solid var(--border); border-radius: 7px; color: var(--text); font-size: 12.5px; padding: 7px 9px; outline: none; font-family: inherit; width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
+  input.form-input[type="date"] { min-width: 0; max-width: 100%; }
   select.filter-select { width: auto; }
   select.filter-select:focus, select.form-select:focus, input.form-input:focus, textarea.form-input:focus { border-color: var(--accent-dim); }
 

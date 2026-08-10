@@ -203,8 +203,10 @@
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .pairbox-form-layout { display: grid; grid-template-columns: 1.7fr 1fr; gap: 22px; align-items: stretch; min-width: 0; }
   .pairbox-preview-col { display: flex; flex-direction: column; min-width: 0; }
-  .pairbox-fields-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .pairbox-fields-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; align-content: start; min-width: 0; }
+  .pairbox-fields-col .span2 { grid-column: 1 / -1; }
   .pairbox-preview-col label, .pairbox-fields-col label { display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-faint); margin-bottom: 5px; }
+  .pairbox-field-row { display: flex; flex-direction: column; gap: 12px; }
   .form-grid .span2 { grid-column: 1 / -1; }
   .form-field, .form-grid > *, .pairbox-fields-col > * { min-width: 0; }
   .form-field label { display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-faint); margin-bottom: 5px; }
@@ -390,6 +392,8 @@
     .jod-nav-item { flex-shrink: 0; padding: 8px 12px; }
     .jod-sidebar-foot { display: none; }
     .row2, .charts-row, .form-grid, .sheet-grid, .bulk-grid, .pairbox-form-layout { grid-template-columns: 1fr; }
+    .pairbox-field-row { flex-direction: row; gap: 10px; }
+    .pairbox-field-row .form-field { flex: 1; min-width: 0; }
 
     /* Compact user/login row: name+avatar and Log-Out sit side by side instead of stacked
        full-width blocks, so the sidebar bar stays short and content starts right below it. */
@@ -2407,38 +2411,44 @@ function Breeding({ beetles, setBeetles, pairings, setPairings, tubs, setTubs, e
             <TubSection useRottenWood={form.useRottenWood} rottenWoodCount={form.rottenWoodCount} compaction={form.compaction} boxSizeL={form.boxSizeL} />
           </div>
           <div className="pairbox-fields-col">
-            <div className="form-field">
-              <label>พ่อพันธุ์ (ตัวผู้)</label>
-              <select className="form-select" value={form.sireId} onChange={(e) => setForm({ ...form, sireId: e.target.value })}>
-                <option value="">— เลือกพ่อพันธุ์ —</option>
-                {males.map((m) => <option key={m.id} value={m.id}>{m.id} · {m.species}{m.sizeMm ? ` · ${m.sizeMm}mm` : ""}</option>)}
-              </select>
+            <div className="pairbox-field-row">
+              <div className="form-field">
+                <label>พ่อพันธุ์ (ตัวผู้)</label>
+                <select className="form-select" value={form.sireId} onChange={(e) => setForm({ ...form, sireId: e.target.value })}>
+                  <option value="">— เลือกพ่อพันธุ์ —</option>
+                  {males.map((m) => <option key={m.id} value={m.id}>{m.id} · {m.species}{m.sizeMm ? ` · ${m.sizeMm}mm` : ""}</option>)}
+                </select>
+              </div>
+              <div className="form-field">
+                <label>แม่พันธุ์ (ตัวเมีย)</label>
+                <select className="form-select" value={form.damId} onChange={(e) => setForm({ ...form, damId: e.target.value })}>
+                  <option value="">— เลือกแม่พันธุ์ —</option>
+                  {females.map((m) => <option key={m.id} value={m.id}>{m.id} · {m.species}{m.sizeMm ? ` · ${m.sizeMm}mm` : ""}</option>)}
+                </select>
+              </div>
             </div>
-            <div className="form-field">
-              <label>แม่พันธุ์ (ตัวเมีย)</label>
-              <select className="form-select" value={form.damId} onChange={(e) => setForm({ ...form, damId: e.target.value })}>
-                <option value="">— เลือกแม่พันธุ์ —</option>
-                {females.map((m) => <option key={m.id} value={m.id}>{m.id} · {m.species}{m.sizeMm ? ` · ${m.sizeMm}mm` : ""}</option>)}
-              </select>
+            <div className="pairbox-field-row">
+              <div className="form-field"><label>วันที่เริ่มจับคู่</label><input className="form-input" type="date" value={form.dateStarted} onChange={(e) => setForm({ ...form, dateStarted: e.target.value })} /></div>
+              <div className="form-field">
+                <label>ห้องเลี้ยง</label>
+                <select className="form-select" value={form.enclosureId} onChange={(e) => setForm({ ...form, enclosureId: e.target.value })}>
+                  <option value="">—</option>
+                  {enclosures.map((en) => <option key={en.id} value={en.id}>{en.name}</option>)}
+                </select>
+              </div>
             </div>
-            <div className="form-field"><label>วันที่เริ่มจับคู่</label><input className="form-input" type="date" value={form.dateStarted} onChange={(e) => setForm({ ...form, dateStarted: e.target.value })} /></div>
-            <div className="form-field">
-              <label>ห้องเลี้ยง</label>
-              <select className="form-select" value={form.enclosureId} onChange={(e) => setForm({ ...form, enclosureId: e.target.value })}>
-                <option value="">—</option>
-                {enclosures.map((en) => <option key={en.id} value={en.id}>{en.name}</option>)}
-              </select>
+            <div className="pairbox-field-row">
+              <div className="form-field"><label>วัสดุการเพาะ (แมท)</label><input className="form-input" placeholder="เช่น Premium Mat สูตร L3, มาตรฐาน EU" value={form.substrateType} onChange={(e) => setForm({ ...form, substrateType: e.target.value })} /></div>
+              <div className="form-field"><label>ขนาดกล่องเพาะ (L)</label><input className="form-input" type="number" min="0" step="0.5" placeholder="เช่น 5" value={form.boxSizeL} onChange={(e) => setForm({ ...form, boxSizeL: e.target.value })} /></div>
             </div>
-            <div className="form-field"><label>วัสดุการเพาะ (แมท)</label><input className="form-input" placeholder="เช่น Premium Mat สูตร L3, มาตรฐาน EU" value={form.substrateType} onChange={(e) => setForm({ ...form, substrateType: e.target.value })} /></div>
-            <div className="form-field"><label>ขนาดกล่องเพาะ (L)</label><input className="form-input" type="number" min="0" step="0.5" placeholder="เช่น 5" value={form.boxSizeL} onChange={(e) => setForm({ ...form, boxSizeL: e.target.value })} /></div>
-            <div className="form-field">
+            <div className="form-field span2">
               <label className="form-check-label" style={{ marginTop: 0 }}>
                 <input type="checkbox" checked={form.useRottenWood} onChange={(e) => setForm({ ...form, useRottenWood: e.target.checked })} />
                 กล่องเพาะด้วงคีม (ใช้ไม้ผุ) — ไม่ติ๊ก = กล่องเพาะด้วงกว่าง (ไม่ใช้ไม้ผุ)
               </label>
             </div>
             {form.useRottenWood && (
-              <div className="form-field">
+              <div className="form-field span2">
                 <label>จำนวนไม้ผุ (0-3 ชิ้น)</label>
                 <div style={{ display: "flex", gap: 6 }}>
                   {[0, 1, 2, 3].map((n) => (
@@ -2452,12 +2462,12 @@ function Breeding({ beetles, setBeetles, pairings, setPairings, tubs, setTubs, e
                 </div>
               </div>
             )}
-            <div className="form-field">
+            <div className="form-field span2">
               <label>ระดับการอัดแมท: {compactionLabel(form.compaction)} ({form.compaction}%)</label>
               <input type="range" min="0" max="100" step="1" className="compaction-slider" value={form.compaction} onChange={(e) => setForm({ ...form, compaction: Number(e.target.value) })} />
               <div className="compaction-scale"><span>ไม่อัดแมท</span><span>แน่นปานกลาง</span><span>อัดแน่นมาก</span></div>
             </div>
-            <div className="form-field"><label>บันทึกเพิ่มเติม</label><input className="form-input" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+            <div className="form-field span2"><label>บันทึกเพิ่มเติม</label><input className="form-input" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
           </div>
         </div>
 

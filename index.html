@@ -72,32 +72,38 @@
   .jod .mono { font-family: 'SF Mono', Consolas, Menlo, 'Courier New', monospace; }
 
   .jod-sidebar { width: 216px; flex-shrink: 0; background: var(--panel); border-right: 1px solid var(--border-soft); display: flex; flex-direction: column; padding: 20px 14px; gap: 4px; }
-  .jod-brand { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px 20px 10px; border-bottom: 1px solid var(--border-soft); margin-bottom: 14px; }
-  .theme-toggle { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
-  .theme-toggle:hover { border-color: var(--accent-dim); }
+  .jod-brand { display: flex; align-items: center; justify-content: center; padding: 6px 10px 20px 10px; border-bottom: 1px solid var(--border-soft); margin-bottom: 14px; }
 
+  .jod-nav-list { display: flex; flex-direction: column; gap: 4px; }
   .jod-nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; color: var(--text-dim); cursor: pointer; font-size: 13.5px; font-weight: 500; border: 1px solid transparent; transition: background .15s, color .15s, border-color .15s; }
   .jod-nav-item:hover { background: var(--panel-2); color: var(--text); }
   .jod-nav-item.active { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent-dim); }
   .jod-nav-item svg { flex-shrink: 0; }
   .jod-sidebar-foot { margin-top: auto; padding: 10px; border-top: 1px solid var(--border-soft); font-size: 10.5px; color: var(--text-faint); line-height: 1.5; }
-  .sidebar-account { padding: 10px; margin-top: 8px; border-top: 1px solid var(--border-soft); display: flex; flex-direction: column; gap: 8px; }
-  .account-row { display: flex; align-items: center; gap: 8px; }
+  .user-menu { position: relative; border-top: 1px solid var(--border-soft); padding-top: 10px; margin-top: 8px; }
+  .user-menu-trigger {
+    width: 100%; display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px;
+    background: transparent; border: 1px solid transparent; cursor: pointer; text-align: left;
+  }
+  .user-menu-trigger:hover { background: var(--panel-2); border-color: var(--border-soft); }
+  .user-menu-name { font-size: 12.5px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .user-menu-scrim { position: fixed; inset: 0; z-index: 39; }
+  .user-menu-dropdown {
+    position: absolute; bottom: calc(100% + 6px); left: 0; width: 100%; min-width: 200px; z-index: 40;
+    background: var(--panel); border: 1px solid var(--border-soft); border-radius: 10px; padding: 6px;
+    display: flex; flex-direction: column; gap: 3px; box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  }
+  .user-menu-option {
+    display: flex; align-items: center; gap: 8px; padding: 8px 9px; border-radius: 7px; font-size: 12.5px;
+    background: transparent; border: none; color: var(--text-dim); cursor: pointer; text-align: left; width: 100%;
+  }
+  .user-menu-option:hover:not(:disabled) { background: var(--panel-2); }
+  .user-menu-option.active { color: var(--accent-strong); font-weight: 600; }
+  .user-menu-option:disabled { cursor: default; }
+  .sidebar-logout-btn { width: 100%; justify-content: center; margin-top: 6px; }
   .account-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
   .account-avatar-fallback { display: flex; align-items: center; justify-content: center; background: var(--panel-2); color: var(--text-faint); border: 1px solid var(--border-soft); }
-  .account-info { min-width: 0; }
-  .account-name { font-size: 12px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .account-email { font-size: 10px; color: var(--text-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .account-hint { font-size: 10px; color: var(--text-faint); line-height: 1.5; }
-  .login-mode-row { display: flex; gap: 6px; margin-bottom: 8px; }
-  .login-mode-pill {
-    flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;
-    padding: 6px 8px; border-radius: 100px; font-size: 11px; font-weight: 600;
-    border: 1px solid var(--border-soft); background: var(--panel-2); color: var(--text-faint);
-    cursor: pointer;
-  }
-  .login-mode-pill.active { background: var(--accent-soft); border-color: var(--accent-dim); color: var(--accent-strong); cursor: default; }
-  span.login-mode-pill { cursor: default; }
 
   .login-gate { align-items: center; justify-content: center; padding: 20px; }
   .login-gate-card {
@@ -110,6 +116,9 @@
 
   .jod-main { flex: 1; padding: 28px 34px 60px; overflow-y: auto; max-height: 100vh; }
   .jod-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 22px; flex-wrap: wrap; gap: 12px; }
+  .settings-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .settings-login-compact { display: flex; align-items: center; gap: 6px; background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: 100px; padding: 4px 6px 4px 4px; }
+  .settings-login-email { font-size: 10.5px; color: var(--text-dim); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .jod-title { font-size: 26px; font-weight: 600; }
   .jod-eyebrow { font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); font-weight: 600; margin-bottom: 4px; }
   .jod-desc { color: var(--text-dim); font-size: 13px; margin-top: 4px; }
@@ -339,6 +348,9 @@
   .status-complete { background: var(--panel-2); color: var(--text-dim); border: 1px solid var(--border); }
 
   .enclosure-card { background: var(--panel); border: 1px solid var(--border-soft); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
+  .category-block { border-top: 1px solid var(--border-soft); padding-top: 14px; margin-top: 14px; }
+  .category-block:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+  .species-chip { display: inline-flex; align-items: center; }
   .enclosure-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
   .metric-row { display: flex; gap: 22px; flex-wrap: wrap; }
   .metric { display: flex; align-items: center; gap: 8px; }
@@ -370,10 +382,30 @@
 
   @media (max-width: 900px) {
     .jod { flex-direction: column; }
-    .jod-sidebar { width: 100%; flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--border-soft); align-items: center; }
-    .jod-brand { display: flex; border-bottom: none; margin-bottom: 0; padding: 6px 10px; }
-    .jod-brand img { display: none; }
+    .jod-sidebar { width: 100%; flex-direction: column; border-right: none; border-bottom: 1px solid var(--border-soft); padding: 10px 12px; gap: 10px; }
+    .jod-brand { border-bottom: none; margin-bottom: 0; padding: 2px 2px 8px; }
+    .jod-nav-list { flex-direction: row; overflow-x: auto; gap: 6px; padding-bottom: 2px; }
+    .jod-nav-item { flex-shrink: 0; padding: 8px 12px; }
+    .jod-sidebar-foot { display: none; }
     .row2, .charts-row, .form-grid, .sheet-grid, .bulk-grid, .pairbox-form-layout { grid-template-columns: 1fr; }
+  }
+
+  /* Phone-sized screens: tighter spacing, smaller type, full-width touch-friendly controls. */
+  @media (max-width: 560px) {
+    .jod-main { padding: 16px 14px 40px; }
+    .jod-title { font-size: 21px; }
+    .jod-header { flex-direction: column; align-items: stretch; gap: 10px; }
+    .jod-header .btn { width: 100%; justify-content: center; }
+    .card { padding: 14px; }
+    .modal-backdrop { padding: 0; align-items: flex-end; }
+    .modal { max-width: 100%; border-radius: 16px 16px 0 0; max-height: 92vh; overflow-y: auto; padding: 18px 16px 20px; }
+    .beetle-actions { flex-wrap: wrap; }
+    .beetle-actions .btn { flex: 1 1 auto; justify-content: center; }
+    .pairbox-preview-col { min-height: 200px; }
+    .grid-stats { grid-template-columns: repeat(2, 1fr); }
+    .modal-foot { flex-direction: column-reverse; }
+    .modal-foot .btn { width: 100%; justify-content: center; }
+    table { display: block; overflow-x: auto; white-space: nowrap; }
   }
 </style>
 </head>
@@ -493,107 +525,25 @@ function SimpleBarChart({ data }) {
 
 /* ---------------------------- Reference data ---------------------------- */
 
-const SPECIES_CATALOG = {
-  "cat-1": {
-    label: "หมวดหมู่ด้วงกว่างเฮอร์คิวลีส ชนิดย่อย",
-    species: [
-      { code: "DHH", name: "Dynastes hercules hercules", th: "เฮอร์คิวลีส เฮอร์คิวลีส" },
-      { code: "DHM", name: "Dynastes hercules morishimai", th: "เฮอร์คิวลีส โมริชิไม" },
-      { code: "DHE", name: "Dynastes hercules ecuatorianus", th: "เฮอร์คิวลีส เอกวาโตเรียนัส" },
-      { code: "DHO", name: "Dynastes hercules occidentalis", th: "เฮอร์คิวลีส ออคซิเดนทาลิส" },
-      { code: "DHP", name: "Dynastes hercules paschoali", th: "เฮอร์คิวลีส พาสโชอาลี" },
-      { code: "DHL", name: "Dynastes hercules lichyi", th: "เฮอร์คิวลีส ลิชิ" },
-      { code: "DHS", name: "Dynastes hercules septentrionalis", th: "เฮอร์คิวลีส เซปเทนทริโอนาลิส" },
-      { code: "DHT", name: "Dynastes hercules takakuwai", th: "เฮอร์คิวลีส ทาคาคุไว" },
-      { code: "DHR", name: "Dynastes hercules reidi", th: "เฮอร์คิวลีส เรดิ" },
-      { code: "DHB", name: "Dynastes hercules bleuzeni", th: "เฮอร์คิวลีส บลูเซนี" },
-    ],
-  },
-  "cat-2": {
-    label: "หมวดหมู่ด้วงกว่างต่างประเทศยอดนิยม",
-    species: [
-      { code: "NEP", name: "Dynastes neptunus", th: "กว่างเนปจูน" },
-      { code: "SAT", name: "Dynastes satanas", th: "กว่างซาตาน" },
-      { code: "HYL", name: "Dynastes hyllus", th: "กว่างไฮลัส" },
-      { code: "TIT", name: "Dynastes tityus", th: "กว่างทิทิอุส" },
-      { code: "MAY", name: "Dynastes maya", th: "กว่างมายา" },
-      { code: "AGC", name: "Augosoma centaurus", th: "กว่างเซนทอร์" },
-    ],
-  },
-  "cat-3": {
-    label: "หมวดหมู่ด้วงกว่างช้างยักษ์",
-    species: [
-      { code: "MEE", name: "Megasoma elephas elephas", th: "กว่างช้างเหลืองเม็กซิโก" },
-      { code: "MGG", name: "Megasoma gyas gyas", th: "กว่างช้างกิอาส กิอาส" },
-      { code: "MM", name: "Megasoma mars", th: "กว่างช้างมาร์ส" },
-      { code: "MA", name: "Megasoma actaeon", th: "กว่างช้างแอกเทียน" },
-    ],
-  },
-  "cat-4": {
-    label: "หมวดหมู่ด้วงกว่างช้างขนาดเล็ก-กลาง",
-    species: [
-      { code: "MTH", name: "Megasoma thersites", th: "กว่างช้างเธอร์ไซทีส" },
-      { code: "MVO", name: "Megasoma vogti", th: "กว่างช้างวอกที" },
-      { code: "MJO", name: "Megasoma joergenseni", th: "กว่างช้างเยอเกนเซนี" },
-      { code: "MPU", name: "Megasoma punctulatum", th: "กว่างช้างพังทูลาทัม" },
-    ],
-  },
-  "cat-5": {
-    label: "หมวดหมู่ด้วงกว่างตระกูลอัลโลไมรินา/ไตรพอกซิลัส",
-    species: [
-      { code: "ALD", name: "Allomyrina dichotoma", th: "กว่างญี่ปุ่น (ห้าเขา)" },
-      { code: "XYG", name: "Xylotrupes gideon", th: "กว่างโซ้ง" },
-      { code: "XYS", name: "Xylotrupes siamensis", th: "กว่างสยาม" },
-    ],
-  },
-  "cat-6": {
-    label: "หมวดหมู่ด้วงกว่างดาว",
-    species: [
-      { code: "EGR", name: "Eupatorus gracilicornis", th: "กว่างดาว" },
-      { code: "EBI", name: "Eupatorus birmanicus", th: "กว่างดาวพม่า" },
-      { code: "EHA", name: "Eupatorus hardwickii", th: "กว่างดาวฮาร์ดวิค" },
-    ],
-  },
-  "cat-7": {
-    label: "หมวดหมู่ด้วงกว่างสามเขา และคอเคซัส",
-    species: [
-      { code: "CCA", name: "Chalcosoma caucasus (chiron)", th: "สามเขาคอเคซัส" },
-      { code: "CAT", name: "Chalcosoma atlas", th: "สามเขาแอทลาส" },
-      { code: "CMO", name: "Chalcosoma moellenkampi", th: "สามเขาโมเลนแคมป์" },
-      { code: "CEN", name: "Chalcosoma engganensis", th: "สามเขาเอ็งกาโน" },
-    ],
-  },
-  "cat-8": {
-    label: "หมวดหมู่ด้วงกว่างแรดต่างประเทศ",
-    species: [
-      { code: "SAL", name: "Strategus aloeus", th: "แรดอโลอิอุส" },
-      { code: "SAN", name: "Strategus antaeus", th: "แรดแอนเทอุส" },
-      { code: "SJU", name: "Strategus julianus", th: "แรดจูเลียนัส" },
-    ],
-  },
-  "cat-9": {
-    label: "หมวดหมู่ด้วงดอกไม้",
-    species: [
-      { code: "MTO", name: "Mecynorhina torquata", th: "ดอกไม้ยักษ์แอฟริกา" },
-      { code: "CPO", name: "Chelorrhina polyphemus", th: "ดอกไม้โพลีฟีมัส" },
-      { code: "DDE", name: "Dicronorhina derbyana", th: "ดอกไม้เดอร์บี้" },
-    ],
-  },
-  "cat-10": {
-    label: "หมวดหมู่ด้วงคีม",
-    species: [
-      { code: "DGH", name: "Dorcus grandis hercules", th: "คีมยักษ์แกรนดิส" },
-      { code: "DAA", name: "Dorcus alcides", th: "คีมอัลซีเดส" },
-      { code: "DTIT", name: "Dorcus titanus", th: "คีมไททานัส" },
-      { code: "LCP", name: "Lucanus cervus akbesianus", th: "คีมยุโรป" },
-      { code: "PGI", name: "Prosopocoilus giraffa", th: "คีมยีราฟ" },
-    ],
-  },
-  other: { label: "หมวดหมู่อื่นๆ / กำหนดเอง", species: [] },
-};
+/** Default catalog for brand-new accounts — starts empty (just the permanent fallback "other"
+ *  bucket). Each person builds their own categories/species from Settings; this is saved as their
+ *  own per-account data (loadData/saveData "catalog"), same as their beetles/pairings. */
+function defaultCatalog() {
+  return { other: { label: "หมวดหมู่อื่นๆ / กำหนดเอง", species: [] } };
+}
 
-const LOCALITIES = ["Guadeloupe", "Sumatra", "Mindanao", "Mt. Arjuno", "Mt. Apo", "Poso", "Banaue", "ระบุเอง"];
-const LINES = ["OX-LINE", "FF-LINE", "Hiroe-LINE", "Poso Line", "ระบุเอง"];
+/** Auto-derives a short internal species code from the name the person types (used to prefix
+ *  auto-generated beetle IDs), guaranteed unique within the given list of already-used codes. */
+function deriveSpeciesCode(name, existingCodes) {
+  const base = (name || "").toUpperCase().replace(/[^A-Z0-9ก-๙]/g, "").slice(0, 6) || "SPC";
+  let code = base;
+  let n = 1;
+  while (existingCodes.includes(code)) {
+    n += 1;
+    code = `${base}${n}`;
+  }
+  return code;
+}
 
 const STAGES = [
   { value: "egg", label: "ไข่ (EGG)" },
@@ -606,7 +556,6 @@ const STAGES = [
 const GENDERS = [
   { value: "male", label: "ผู้ ♂" },
   { value: "female", label: "เมีย ♀" },
-  { value: "pair", label: "แพ็คคู่ ♂+♀" },
   { value: "unsexed", label: "ยังไม่แยกเพศ" },
   { value: "unknown", label: "ไม่ระบุ" },
 ];
@@ -686,8 +635,8 @@ function resizeImageFile(file, maxDim = 480, quality = 0.82) {
 }
 
 /** Finds which catalog category a species code belongs to (used when promoting a tub to a beetle). */
-function findCategoryForSpeciesCode(code) {
-  for (const [catId, cat] of Object.entries(SPECIES_CATALOG)) {
+function findCategoryForSpeciesCode(code, catalog) {
+  for (const [catId, cat] of Object.entries(catalog)) {
     if (cat.species.some((s) => s.code === code)) return catId;
   }
   return "other";
@@ -722,8 +671,8 @@ const FOOD_ITEMS = ["เยลลี่สำหรับด้วง", "ผล�
 const JAR_SIZES = ["300 ML", "500 ML", "750 ML", "1 L", "1.5 L", "16 OZ", "32 OZ", "ระบุเอง"];
 
 const emptyBeetle = () => ({
-  id: "", categoryId: "cat-1", speciesCode: "DHH", customSpeciesName: "", species: "",
-  subSpecies: "", locality: "", localityCustom: "", line: "", lineCustom: "",
+  id: "", categoryId: "other", speciesCode: "custom", customSpeciesName: "", species: "",
+  subSpecies: "", locality: "", line: "",
   stage: "adult", gender: "unknown", sizeMm: "", weightGrams: "", origin: "",
   dateReceived: todayISO(), imageUrl: "", sire: "", dam: "", temp: "", foodType: "", notes: "",
   boxType: "", boxTypeCustom: "", substrate: "", substrateCustom: "", foodItem: "", foodItemCustom: "",
@@ -766,40 +715,6 @@ function pseudoRandom(seed) {
   const x = Math.sin(seed * 12.9898) * 43758.5453;
   return x - Math.floor(x);
 }
-
-const SEED_BEETLES = [
-  {
-    id: "DHH-2026-101", categoryId: "cat-1", speciesCode: "DHH",
-    species: "Dynastes hercules hercules (เฮอร์คิวลีส เฮอร์คิวลีส)", subSpecies: "Guadeloupe Population",
-    locality: "Guadeloupe", line: "OX-LINE", stage: "adult",
-    gender: "male", sizeMm: 158.5, weightGrams: "", origin: "นำเข้าจากฟาร์มญี่ปุ่น (Imported)",
-    dateReceived: "2026-07-22", imageUrl: "", sire: "OX-LINE 168mm", dam: "FF-LINE 75mm",
-    temp: 22.5, foodType: "High-Protein Jelly & Premium Mat", notes: "ตัวเต็มวัยสมบูรณ์ เขาหนา โครงสร้างใหญ่",
-  },
-  {
-    id: "DTIT-2026-014", categoryId: "cat-10", speciesCode: "DTIT",
-    species: "Dorcus titanus (คีมไททานัส)", subSpecies: "", locality: "Sumatra", line: "",
-    stage: "l3", gender: "unsexed", sizeMm: "", weightGrams: 42.5,
-    origin: "เพาะเองในฟาร์ม", dateReceived: "2026-06-10", imageUrl: "", sire: "", dam: "",
-    temp: 21, foodType: "Premium Mat สูตร L3", notes: "",
-  },
-  {
-    id: "CCA-2026-007", categoryId: "cat-7", speciesCode: "CCA",
-    species: "Chalcosoma caucasus (chiron) (สามเขาคอเคซัส)", subSpecies: "", locality: "", line: "",
-    stage: "adult", gender: "female", sizeMm: 62, weightGrams: "",
-    origin: "จากคู่ผสมในฟาร์ม", dateReceived: "2026-07-01", imageUrl: "", sire: "", dam: "",
-    temp: 23, foodType: "", notes: "",
-  },
-];
-
-const SEED_TUBS = [
-  {
-    id: uid("TUB"), label: "ถังเพาะ #1 — ไข่ CCA รุ่นกรกฎาคม", pairingId: "",
-    speciesCode: "CCA", species: "Chalcosoma caucasus (chiron)",
-    eggCount: 6, larvaCount: 0, enclosureId: "", dateStarted: "2026-07-05",
-    substrateType: "", useRottenWood: false, rottenWoodCount: "", notes: "จากแม่พันธุ์ CCA-2026-007",
-  },
-];
 
 /* ------------------------------ Storage I/O ------------------------------ */
 
@@ -941,45 +856,8 @@ async function saveData(googleUser, base, value) {
   saveKey(localKey, value);
 }
 
-/** LOG-IN panel: choose "Guest" (local only, works everywhere) or "Gmail" (via Supabase — needs
- *  SUPABASE_CONFIG set up; gives real cross-device sync when it is). */
-function LoginPanel() {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleGmail = async () => {
-    setBusy(true); setError("");
-    try {
-      await signInWithGoogleSupabase();
-      // Page will navigate away to Google here; nothing more to do on this side.
-    } catch (e) {
-      console.error("JOD: Gmail sign-in failed", e);
-      setError(supabaseConfigured ? "เข้าสู่ระบบไม่สำเร็จ ลองใหม่อีกครั้ง" : "ต้องตั้งค่า Supabase ก่อน (ดูคอมเมนต์ SUPABASE_CONFIG ในโค้ด)");
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div>
-      <div className="panel-title" style={{ marginBottom: 8, fontSize: 11.5 }}><span className="tag-dot" />LOG-IN</div>
-      <div className="login-mode-row">
-        <span className="login-mode-pill active"><CheckSquare size={12} /> Guest</span>
-        <button className="login-mode-pill" onClick={handleGmail} disabled={busy}>
-          <LogInIcon size={12} /> {busy ? "…" : "Gmail"}
-        </button>
-      </div>
-      {error && <div className="account-hint" style={{ color: "var(--rust)", marginTop: 6 }}>{error}</div>}
-      <div className="account-hint" style={{ marginTop: 6 }}>
-        {supabaseConfigured
-          ? "Guest = เก็บข้อมูลในเครื่องนี้เท่านั้น · Gmail = ซิงค์ข้อมูลข้ามอุปกรณ์จริงผ่าน Supabase"
-          : "กำลังใช้งานแบบ Guest (เก็บข้อมูลในเครื่องนี้) · Gmail ต้องตั้งค่า Supabase ก่อนจึงจะซิงค์ข้ามเครื่องได้จริง"}
-      </div>
-    </div>
-  );
-}
-
 /** Full-screen LOG-IN gate shown when entering the site (before the person has chosen Guest or
- *  signed in). Same two choices as the sidebar's LoginPanel, just presented up front. */
+ *  signed in). Same two choices as Settings' compact login control, just presented up front. */
 function LoginGate({ theme, onContinueAsGuest }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -1001,7 +879,7 @@ function LoginGate({ theme, onContinueAsGuest }) {
       <div className="login-gate-card">
         <BrandLogo theme={theme} size={44} />
         <div className="login-gate-title disp">LOG-IN</div>
-        <div className="login-gate-desc">บันทึกภาคสนามสำหรับผู้เพาะเลี้ยงด้วงกว่าง</div>
+        <div className="login-gate-desc">จดบันทึกข้อมูลการเพาะเลี้ยงด้วง</div>
 
         <button className="btn btn-primary login-gate-btn" onClick={handleGmail} disabled={busy}>
           <LogInIcon size={15} /> {busy ? "กำลังเข้าสู่ระบบ…" : "เข้าสู่ระบบด้วย Gmail"}
@@ -1011,11 +889,6 @@ function LoginGate({ theme, onContinueAsGuest }) {
         </button>
 
         {error && <div className="account-hint" style={{ color: "var(--rust)", marginTop: 10 }}>{error}</div>}
-        <div className="account-hint" style={{ marginTop: 12 }}>
-          {supabaseConfigured
-            ? "Guest = เก็บข้อมูลในเครื่องนี้เท่านั้น · Gmail = ซิงค์ข้อมูลข้ามอุปกรณ์จริงผ่าน Supabase"
-            : "Gmail ต้องตั้งค่า Supabase ก่อนจึงจะซิงค์ข้ามเครื่องได้จริง · เลือก Guest เพื่อใช้งานได้ทันที"}
-        </div>
       </div>
     </div>
   );
@@ -1303,7 +1176,49 @@ async function downloadAllLabelsAsPdf(beetles, size, theme = "dark") {
 
 /* ---------------------------------- Sidebar -------------------------------- */
 
-function Sidebar({ tab, setTab, counts, theme, onToggleTheme, googleUser, onSignOut }) {
+/** Compact "who's using this" control for the sidebar — shows the current user's name (or
+ *  "Guest"), and opens a small dropdown to switch between Guest and Gmail sign-in. */
+function UserMenu({ googleUser, onSignOut }) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const displayName = googleUser ? (googleUser.name || googleUser.email) : "Guest";
+
+  const handleGmail = async () => {
+    setBusy(true);
+    try {
+      await signInWithGoogleSupabase();
+      // Page navigates away to Google here; nothing more to do on this side.
+    } catch (e) {
+      console.error("JOD: Gmail sign-in failed", e);
+      setBusy(false);
+    }
+  };
+  const handleGuest = () => {
+    onSignOut();
+    setOpen(false);
+  };
+
+  return (
+    <div className="user-menu">
+      <button className="user-menu-trigger" onClick={() => setOpen((v) => !v)}>
+        {googleUser && googleUser.picture ? <img src={googleUser.picture} alt="" className="account-avatar" /> : <div className="account-avatar account-avatar-fallback"><LogInIcon size={12} /></div>}
+        <span className="user-menu-name">{displayName}</span>
+      </button>
+      {open && (
+        <>
+          <div className="user-menu-scrim" onClick={() => setOpen(false)} />
+          <div className="user-menu-dropdown">
+            <button className={`user-menu-option ${!googleUser ? "active" : ""}`} onClick={handleGuest}><CheckSquare size={12} /> Guest</button>
+            <button className={`user-menu-option ${googleUser ? "active" : ""}`} onClick={handleGmail} disabled={busy || !!googleUser}><LogInIcon size={12} /> {busy ? "…" : "เข้าสู่ระบบด้วย Gmail"}</button>
+            {googleUser && <button className="user-menu-option" onClick={() => { onSignOut(); setOpen(false); }}><LogOutIcon size={12} /> ออกจากระบบ</button>}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function Sidebar({ tab, setTab, counts, theme, googleUser, onSignOut }) {
   const items = [
     { id: "dashboard", label: "Overview" },
     { id: "beetles", label: "Collection", count: counts.beetles },
@@ -1314,43 +1229,19 @@ function Sidebar({ tab, setTab, counts, theme, onToggleTheme, googleUser, onSign
     <div className="jod-sidebar">
       <div className="jod-brand">
         <BrandLogo theme={theme} size={34} />
-        <button className="theme-toggle" onClick={onToggleTheme} title={theme === "dark" ? "สลับเป็นโหมดสว่าง" : "สลับเป็นโหมดมืด"}>
-          {theme === "dark" ? <SunIcon size={15} /> : <MoonIcon size={15} />}
-        </button>
       </div>
-      {items.map((it) => (
-        <div key={it.id} className={`jod-nav-item ${tab === it.id ? "active" : ""}`} onClick={() => setTab(it.id)}>
-          <span style={{ flex: 1 }}>{it.label}</span>
-          {typeof it.count === "number" && <span className="mono" style={{ fontSize: 10.5, color: "var(--text-faint)" }}>{it.count}</span>}
-        </div>
-      ))}
-
-      <div className="sidebar-account">
-        {googleUser ? (
-          <>
-            <div className="panel-title" style={{ marginBottom: 8, fontSize: 11.5 }}><span className="tag-dot" />LOG-IN</div>
-            <div className="login-mode-row">
-              <span className="login-mode-pill"><CheckSquare size={12} /> Guest</span>
-              <span className="login-mode-pill active"><LogInIcon size={12} /> Gmail</span>
-            </div>
-            <div className="account-row">
-              {googleUser.picture ? <img src={googleUser.picture} alt="" className="account-avatar" /> : <div className="account-avatar account-avatar-fallback"><LogInIcon size={13} /></div>}
-              <div className="account-info">
-                <div className="account-name">{googleUser.name}</div>
-                <div className="account-email">{googleUser.email}</div>
-              </div>
-            </div>
-            <div className="account-hint">
-              {googleUser.uid && supabaseConfigured ? "ข้อมูลซิงค์ข้ามอุปกรณ์ผ่าน Supabase" : "กำลังใช้งานคอลเลกชันของบัญชีนี้ แยกจากบัญชีอื่นบนเครื่องเดียวกัน"}
-            </div>
-            <button className="btn btn-sm" style={{ width: "100%", justifyContent: "center" }} onClick={onSignOut}><LogOutIcon size={12} /> ออกจากระบบ</button>
-          </>
-        ) : (
-          <LoginPanel />
-        )}
+      <div className="jod-nav-list">
+        {items.map((it) => (
+          <div key={it.id} className={`jod-nav-item ${tab === it.id ? "active" : ""}`} onClick={() => setTab(it.id)}>
+            <span style={{ flex: 1 }}>{it.label}</span>
+            {typeof it.count === "number" && <span className="mono" style={{ fontSize: 10.5, color: "var(--text-faint)" }}>{it.count}</span>}
+          </div>
+        ))}
       </div>
 
-      <div className="jod-sidebar-foot">บันทึกภาคสนามสำหรับผู้เพาะเลี้ยงด้วงกว่าง — ข้อมูลถูกเก็บไว้ในเครื่องของคุณ</div>
+      <UserMenu googleUser={googleUser} onSignOut={onSignOut} />
+      <button className="btn btn-sm sidebar-logout-btn" onClick={onSignOut}><LogOutIcon size={12} /> Log-Out</button>
+      <div className="jod-sidebar-foot">จดบันทึกข้อมูลการเพาะเลี้ยงด้วง — ข้อมูลถูกเก็บไว้ในเครื่องของคุณ</div>
     </div>
   );
 }
@@ -1461,9 +1352,9 @@ function Dashboard({ beetles, pairings, enclosures, tubs, setTab, theme }) {
 
 /* ------------------------------- Beetle form -------------------------------- */
 
-function BeetleForm({ initial, beetles, onSave, onClose }) {
+function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) {
   const [f, setF] = useState(initial);
-  const [autoId, setAutoId] = useState(!initial.id);
+  const [autoId, setAutoId] = useState(false);
   const fileInputRef = useRef(null);
   const set = (k, v) => setF((prev) => ({ ...prev, [k]: v }));
 
@@ -1480,8 +1371,35 @@ function BeetleForm({ initial, beetles, onSave, onClose }) {
     e.target.value = "";
   };
 
-  const catalog = SPECIES_CATALOG[f.categoryId] || SPECIES_CATALOG.other;
-  const speciesEntry = catalog.species.find((s) => s.code === f.speciesCode);
+  const activeCat = catalog[f.categoryId] || catalog.other;
+  const speciesEntry = activeCat.species.find((s) => s.code === f.speciesCode);
+
+  // Section 2 (ID & Lifecycle) unlocks only once Taxonomy is filled in: a category plus either a
+  // picked species or a typed custom species name.
+  const taxonomyComplete = !!(f.categoryId && ((f.speciesCode && f.speciesCode !== "custom") || (f.customSpeciesName && f.customSpeciesName.trim())));
+
+  const [showAddCat, setShowAddCat] = useState(false);
+  const [newCatLabel, setNewCatLabel] = useState("");
+  const [showAddSpecies, setShowAddSpecies] = useState(false);
+  const [newSpeciesName, setNewSpeciesName] = useState("");
+
+  const quickAddCategory = () => {
+    const label = newCatLabel.trim();
+    if (!label) return;
+    const id = uid("cat");
+    setCatalog((prev) => ({ ...prev, [id]: { label, species: [] } }));
+    setF((prev) => ({ ...prev, categoryId: id, speciesCode: "custom" }));
+    setNewCatLabel(""); setShowAddCat(false);
+  };
+  const quickAddSpecies = () => {
+    const name = newSpeciesName.trim();
+    if (!name) return;
+    const existingCodes = activeCat.species.map((s) => s.code);
+    const code = deriveSpeciesCode(name, existingCodes);
+    setCatalog((prev) => ({ ...prev, [f.categoryId]: { ...prev[f.categoryId], species: [...prev[f.categoryId].species, { code, name }] } }));
+    setF((prev) => ({ ...prev, speciesCode: code }));
+    setNewSpeciesName(""); setShowAddSpecies(false);
+  };
 
   const potentialSires = beetles.filter((b) => (b.gender === "male" || b.gender === "pair") && b.stage === "adult" && b.id !== f.id);
   const potentialDams = beetles.filter((b) => (b.gender === "female" || b.gender === "pair") && b.stage === "adult" && b.id !== f.id);
@@ -1499,27 +1417,23 @@ function BeetleForm({ initial, beetles, onSave, onClose }) {
       [role]: value,
       categoryId: parent.categoryId || prev.categoryId,
       speciesCode: parent.speciesCode || prev.speciesCode,
-      locality: LOCALITIES.includes(parent.locality) ? parent.locality : (parent.locality ? "ระบุเอง" : prev.locality),
-      localityCustom: LOCALITIES.includes(parent.locality) ? prev.localityCustom : (parent.locality || prev.localityCustom),
-      line: LINES.includes(parent.line) ? parent.line : (parent.line ? "ระบุเอง" : prev.line),
-      lineCustom: LINES.includes(parent.line) ? prev.lineCustom : (parent.line || prev.lineCustom),
+      locality: parent.locality || prev.locality,
+      line: parent.line || prev.line,
     }));
   };
 
   const handleCategoryChange = (newCat) => {
-    const cat = SPECIES_CATALOG[newCat];
+    const cat = catalog[newCat];
     setF((prev) => ({ ...prev, categoryId: newCat, speciesCode: cat && cat.species.length ? cat.species[0].code : "custom" }));
   };
 
   const submit = () => {
     const finalSpeciesName = f.categoryId === "other" || f.speciesCode === "custom"
       ? f.customSpeciesName
-      : (speciesEntry ? `${speciesEntry.name} (${speciesEntry.th})` : f.customSpeciesName);
+      : (speciesEntry ? speciesEntry.name : f.customSpeciesName);
     const finalId = autoId || !f.id ? nextRunningId(currentSpeciesCode, beetles) : f.id;
     onSave({
       ...f, id: finalId, species: finalSpeciesName,
-      locality: f.locality === "ระบุเอง" ? f.localityCustom : f.locality,
-      line: f.line === "ระบุเอง" ? f.lineCustom : f.line,
       sizeMm: f.sizeMm === "" ? undefined : Number(f.sizeMm),
       weightGrams: f.weightGrams === "" ? undefined : Number(f.weightGrams),
       temp: f.temp === "" ? undefined : Number(f.temp),
@@ -1538,16 +1452,34 @@ function BeetleForm({ initial, beetles, onSave, onClose }) {
           <div className="form-section-label">1. Taxonomy — สายพันธุ์</div>
           <div className="form-field">
             <label>หมวดหมู่หลัก</label>
-            <select className="form-select" value={f.categoryId} onChange={(e) => handleCategoryChange(e.target.value)}>
-              {Object.entries(SPECIES_CATALOG).map(([id, c]) => <option key={id} value={id}>{c.label}</option>)}
-            </select>
+            <div style={{ display: "flex", gap: 6 }}>
+              <select className="form-select" value={f.categoryId} onChange={(e) => handleCategoryChange(e.target.value)}>
+                {Object.entries(catalog).map(([id, c]) => <option key={id} value={id}>{c.label}</option>)}
+              </select>
+              <button type="button" className="btn btn-sm" title="เพิ่มหมวดหมู่ใหม่" onClick={() => setShowAddCat((v) => !v)}><Plus size={12} /></button>
+            </div>
+            {showAddCat && (
+              <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                <input className="form-input" placeholder="ชื่อหมวดหมู่ใหม่" value={newCatLabel} onChange={(e) => setNewCatLabel(e.target.value)} />
+                <button type="button" className="btn btn-sm btn-primary" onClick={quickAddCategory} disabled={!newCatLabel.trim()}>เพิ่ม</button>
+              </div>
+            )}
           </div>
           <div className="form-field">
             <label>สายพันธุ์ย่อย</label>
-            <select className="form-select" value={f.speciesCode} onChange={(e) => set("speciesCode", e.target.value)}>
-              <option value="custom">— ระบุเอง —</option>
-              {catalog.species.map((s) => <option key={s.code} value={s.code}>{s.code} · {s.th}</option>)}
-            </select>
+            <div style={{ display: "flex", gap: 6 }}>
+              <select className="form-select" value={f.speciesCode} onChange={(e) => set("speciesCode", e.target.value)}>
+                <option value="custom">— ระบุเอง —</option>
+                {activeCat.species.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
+              </select>
+              <button type="button" className="btn btn-sm" title="เพิ่มสายพันธุ์ใหม่ในหมวดหมู่นี้" onClick={() => setShowAddSpecies((v) => !v)}><Plus size={12} /></button>
+            </div>
+            {showAddSpecies && (
+              <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                <input className="form-input" placeholder="ชื่อสายพันธุ์ย่อย" value={newSpeciesName} onChange={(e) => setNewSpeciesName(e.target.value)} />
+                <button type="button" className="btn btn-sm btn-primary" onClick={quickAddSpecies} disabled={!newSpeciesName.trim()}>เพิ่ม</button>
+              </div>
+            )}
           </div>
           {(f.speciesCode === "custom" || f.categoryId === "other") && (
             <div className="form-field span2">
@@ -1555,29 +1487,28 @@ function BeetleForm({ initial, beetles, onSave, onClose }) {
               <input className="form-input" placeholder="เช่น Dynastes hercules reidi (ด้วงกว่างเฮอร์คิวลีส เรดิ)" value={f.customSpeciesName} onChange={(e) => set("customSpeciesName", e.target.value)} />
             </div>
           )}
-          <div className="form-field span2">
-            <label>กลุ่มย่อย/ประชากร</label>
-            <input className="form-input" placeholder="เช่น Guadeloupe Population" value={f.subSpecies} onChange={(e) => set("subSpecies", e.target.value)} />
-          </div>
 
           <div className="form-section-label">2. ID & Lifecycle</div>
+          {!taxonomyComplete && (
+            <div className="form-field span2"><div className="form-hint">กรอกข้อมูล "1. Taxonomy — สายพันธุ์" ให้ครบก่อน (เลือกหมวดหมู่ และเลือกสายพันธุ์ย่อย หรือระบุชื่อพันธุ์เอง) จึงจะกรอกส่วนนี้ได้</div></div>
+          )}
           <div className="form-field span2">
             <label>รหัสแท็กด้วง</label>
-            <input className="form-input mono" value={autoId ? previewId : f.id} disabled={autoId} placeholder="พิมพ์รหัสเอง" onChange={(e) => set("id", e.target.value)} />
+            <input className="form-input mono" value={autoId ? previewId : f.id} disabled={autoId || !taxonomyComplete} placeholder="พิมพ์รหัสเอง" onChange={(e) => set("id", e.target.value)} />
             <label className="form-check-label">
-              <input type="checkbox" checked={autoId} onChange={(e) => setAutoId(e.target.checked)} />
+              <input type="checkbox" checked={autoId} disabled={!taxonomyComplete} onChange={(e) => setAutoId(e.target.checked)} />
               สร้างรหัสอัตโนมัติเป็นรันนัมเบอร์ตามสายพันธุ์ (อ้างอิงสายพันธุ์จากพ่อ/แม่ที่เลือกด้านล่าง)
             </label>
           </div>
           <div className="form-field">
             <label>เพศ</label>
-            <select className="form-select" value={f.gender} onChange={(e) => set("gender", e.target.value)}>
+            <select className="form-select" value={f.gender} disabled={!taxonomyComplete} onChange={(e) => set("gender", e.target.value)}>
               {GENDERS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
             </select>
           </div>
           <div className="form-field">
             <label>ระยะวงจรชีวิต</label>
-            <select className="form-select" value={f.stage} onChange={(e) => set("stage", e.target.value)}>
+            <select className="form-select" value={f.stage} disabled={!taxonomyComplete} onChange={(e) => set("stage", e.target.value)}>
               {STAGES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
           </div>
@@ -1585,24 +1516,12 @@ function BeetleForm({ initial, beetles, onSave, onClose }) {
           <div className="form-section-label">3. Lineage — สายเลือด</div>
           <div className="form-field">
             <label>แหล่งกำเนิด</label>
-            <select className="form-select" value={f.locality} onChange={(e) => set("locality", e.target.value)}>
-              <option value="">—</option>
-              {LOCALITIES.map((l) => <option key={l} value={l}>{l}</option>)}
-            </select>
+            <input className="form-input" placeholder="พิมพ์แหล่งกำเนิด เช่น Guadeloupe, Sumatra" value={f.locality} onChange={(e) => set("locality", e.target.value)} />
           </div>
-          {f.locality === "ระบุเอง" && (
-            <div className="form-field"><label>ระบุแหล่งกำเนิด</label><input className="form-input" value={f.localityCustom} onChange={(e) => set("localityCustom", e.target.value)} /></div>
-          )}
           <div className="form-field">
             <label>สายเลือด/ไลน์ผสม</label>
-            <select className="form-select" value={f.line} onChange={(e) => set("line", e.target.value)}>
-              <option value="">—</option>
-              {LINES.map((l) => <option key={l} value={l}>{l}</option>)}
-            </select>
+            <input className="form-input" placeholder="พิมพ์สายเลือด/ไลน์ เช่น OX-LINE" value={f.line} onChange={(e) => set("line", e.target.value)} />
           </div>
-          {f.line === "ระบุเอง" && (
-            <div className="form-field"><label>ระบุไลน์</label><input className="form-input" value={f.lineCustom} onChange={(e) => set("lineCustom", e.target.value)} /></div>
-          )}
 
           <div className="form-section-label">4. Physical Metrics</div>
           <div className="form-field"><label>ขนาดตัวเต็มวัย (mm)</label><input className="form-input" type="number" step="0.1" value={f.sizeMm} onChange={(e) => set("sizeMm", e.target.value)} /></div>
@@ -2035,7 +1954,7 @@ function JarCard({ beetle, onInfo, onEdit, onDelete }) {
   );
 }
 
-function MyBeetles({ beetles, setBeetles, theme }) {
+function MyBeetles({ beetles, setBeetles, catalog, setCatalog, theme }) {
   const [query, setQuery] = useState("");
   const [stageFilter, setStageFilter] = useState("all");
   const [viewMode, setViewMode] = useState("box"); // list | box
@@ -2166,7 +2085,7 @@ function MyBeetles({ beetles, setBeetles, theme }) {
         </div>
       )}
 
-      {modal && <BeetleForm initial={modal === "new" ? emptyBeetle() : { ...emptyBeetle(), ...modal }} beetles={beetles} onSave={save} onClose={() => setModal(null)} />}
+      {modal && <BeetleForm initial={modal === "new" ? emptyBeetle() : { ...emptyBeetle(), ...modal }} beetles={beetles} catalog={catalog} setCatalog={setCatalog} onSave={save} onClose={() => setModal(null)} />}
       {profile && <BeetleProfileModal beetle={profile} theme={theme} onClose={() => setProfile(null)} />}
       {showBulk && <BulkLabelModal beetles={selectedBeetles} theme={theme} onClose={() => setShowBulk(false)} />}
       {showScanner && (
@@ -2349,7 +2268,7 @@ function TubForm({ initial, pairings, enclosures, beetles, onSave, onClose }) {
 
 /* -------------------------------- Breeding ---------------------------------- */
 
-function Breeding({ beetles, setBeetles, pairings, setPairings, tubs, setTubs, enclosures }) {
+function Breeding({ beetles, setBeetles, pairings, setPairings, tubs, setTubs, enclosures, catalog }) {
   const [form, setForm] = useState({
     sireId: "", damId: "", dateStarted: todayISO(), notes: "",
     enclosureId: "", substrateType: "", useRottenWood: false, rottenWoodCount: "", compaction: 70, boxSizeL: "",
@@ -2406,10 +2325,10 @@ function Breeding({ beetles, setBeetles, pairings, setPairings, tubs, setTubs, e
     const qty = Number(tub[field]) || 0;
     if (qty < 1) return;
 
-    const catId = findCategoryForSpeciesCode(tub.speciesCode);
-    const catalog = SPECIES_CATALOG[catId] || SPECIES_CATALOG.other;
-    const entry = catalog.species.find((s) => s.code === tub.speciesCode);
-    const speciesName = entry ? `${entry.name} (${entry.th})` : (tub.species || "");
+    const catId = findCategoryForSpeciesCode(tub.speciesCode, catalog);
+    const cat = catalog[catId] || catalog.other;
+    const entry = cat.species.find((s) => s.code === tub.speciesCode);
+    const speciesName = entry ? entry.name : (tub.species || "");
     const enclosure = enclosures.find((e) => e.id === tub.enclosureId);
     const stage = kind === "egg" ? "egg" : "l1";
     const codeBase = tub.speciesCode && tub.speciesCode !== "custom" ? tub.speciesCode : "SPC";
@@ -2670,7 +2589,8 @@ function App() {
   const [pairings, setPairings] = useState(null);
   const [enclosures, setEnclosures] = useState(null);
   const [tubs, setTubs] = useState(null);
-  const [theme, setTheme] = useState("dark");
+  const [catalog, setCatalog] = useState(null);
+  const theme = "dark"; // dark mode only
   const [googleUser, setGoogleUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   const [hasEntered, setHasEntered] = useState(false);
@@ -2687,10 +2607,8 @@ function App() {
   useEffect(() => {
     let unsubscribe = null;
     (async () => {
-      const systemPrefersLight = typeof window.matchMedia === "function" && window.matchMedia("(prefers-color-scheme: light)").matches;
-      setTheme(await loadKey("jod:theme", systemPrefersLight ? "light" : "dark"));
-      setHasEntered(await loadKey("jod:hasEntered", false));
-
+      // hasEntered is intentionally NOT restored from storage — every fresh page load should show
+      // the LOG-IN gate first, so the person always sees it before using the app.
       if (ensureSupabase()) {
         try {
           const { data } = await supabaseClientInstance.auth.getSession();
@@ -2713,20 +2631,36 @@ function App() {
   useEffect(() => {
     if (!authReady) return;
     let cancelled = false;
-    setBeetles(null); setPairings(null); setEnclosures(null); setTubs(null);
+    setBeetles(null); setPairings(null); setEnclosures(null); setTubs(null); setCatalog(null);
     (async () => {
-      const rawBeetles = await loadData(googleUser, "beetles", SEED_BEETLES);
+      let rawBeetles = await loadData(googleUser, "beetles", []);
       const rawPairings = await loadData(googleUser, "pairings", []);
-      const rawEnclosures = await loadData(googleUser, "enclosures", [
-        { id: uid("ENC"), name: "ตู้เลี้ยง A — ตัวเต็มวัย", temp: 22.5, humidity: 65, notes: "" },
-        { id: uid("ENC"), name: "กล่อง L3 — ตัวอ่อน", temp: 21, humidity: 70, notes: "" },
-      ]);
-      const rawTubs = await loadData(googleUser, "tubs", SEED_TUBS);
+      let rawEnclosures = await loadData(googleUser, "enclosures", []);
+      let rawTubs = await loadData(googleUser, "tubs", []);
+      const rawCatalog = await loadData(googleUser, "catalog", defaultCatalog());
+
+      // One-time cleanup: earlier versions of this app pre-filled new accounts with sample data.
+      // Strip out any record that still exactly matches one of those old sample IDs/names, no matter
+      // what else is in the collection (so a partially-edited/partially-deleted set still gets cleaned).
+      const OLD_SEED_BEETLE_IDS = new Set(["DHH-2026-101", "DTIT-2026-014", "CCA-2026-007"]);
+      rawBeetles = rawBeetles.filter((b) => !OLD_SEED_BEETLE_IDS.has(b.id));
+      const OLD_SEED_ENCLOSURE_NAMES = new Set(["ตู้เลี้ยง A — ตัวเต็มวัย", "กล่อง L3 — ตัวอ่อน"]);
+      rawEnclosures = rawEnclosures.filter((e) => !OLD_SEED_ENCLOSURE_NAMES.has(e.name));
+      rawTubs = rawTubs.filter((t) => t.label !== "ถังเพาะ #1 — ไข่ CCA รุ่นกรกฎาคม");
+
+      // Every tub only ever appears in the UI linked to its pairing (there's no "unlinked tubs" view
+      // anymore) — so a tub whose pairingId doesn't match any current pairing is an invisible orphan
+      // (e.g. left behind by older app versions). Drop those so the Overview count matches what's
+      // actually reachable/visible on the Breeding page.
+      const validPairingIds = new Set(rawPairings.map((p) => p.id));
+      rawTubs = rawTubs.filter((t) => validPairingIds.has(t.pairingId));
+
       if (cancelled) return;
       setBeetles(rawBeetles.map(normalizeBeetle));
       setPairings(rawPairings);
       setEnclosures(rawEnclosures);
       setTubs(rawTubs.map(normalizeTub));
+      setCatalog(rawCatalog && rawCatalog.other ? rawCatalog : { ...rawCatalog, other: { label: "หมวดหมู่อื่นๆ / กำหนดเอง", species: [] } });
     })();
     return () => { cancelled = true; };
   }, [authReady, accountKey]);
@@ -2735,38 +2669,46 @@ function App() {
   useEffect(() => { if (pairings) saveData(googleUser, "pairings", pairings); }, [pairings]);
   useEffect(() => { if (enclosures) saveData(googleUser, "enclosures", enclosures); }, [enclosures]);
   useEffect(() => { if (tubs) saveData(googleUser, "tubs", tubs); }, [tubs]);
-  useEffect(() => { saveKey("jod:theme", theme); }, [theme]);
+  useEffect(() => { if (catalog) saveData(googleUser, "catalog", catalog); }, [catalog]);
 
-  const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
   const handleSignOut = () => {
     setGoogleUser(null);
     signOutSupabase();
+    setHasEntered(false);
   };
   const handleContinueAsGuest = () => {
     setHasEntered(true);
-    saveKey("jod:hasEntered", true);
   };
 
-  if (!beetles || !pairings || !enclosures || !tubs) {
+  // Wait for the initial session check to finish before deciding anything — otherwise an already
+  // signed-in Gmail user would flash the LOG-IN gate for a moment before getSession() resolves.
+  if (!authReady) {
     return <div className={`jod theme-${theme}`} style={{ alignItems: "center", justifyContent: "center" }}><div className="mono" style={{ color: "var(--text-faint)" }}>กำลังโหลดข้อมูล…</div></div>;
   }
 
-  // Show the LOG-IN gate on entry until the person picks Guest or is already signed in.
+  // Show the LOG-IN gate on entry until the person picks Guest or is already signed in. Checked
+  // BEFORE the data-loading guard below: otherwise, right after logging out, the account-switch
+  // triggers a data reload (beetles/tubs briefly become null again) and this would get stuck
+  // showing "loading" instead of immediately returning to the gate.
   if (!hasEntered && !googleUser) {
     return <LoginGate theme={theme} onContinueAsGuest={handleContinueAsGuest} />;
+  }
+
+  if (!beetles || !pairings || !enclosures || !tubs || !catalog) {
+    return <div className={`jod theme-${theme}`} style={{ alignItems: "center", justifyContent: "center" }}><div className="mono" style={{ color: "var(--text-faint)" }}>กำลังโหลดข้อมูล…</div></div>;
   }
 
   return (
     <div className={`jod theme-${theme}`}>
       <Sidebar
         tab={tab} setTab={setTab} counts={{ beetles: beetles.length, pairings: pairings.length }}
-        theme={theme} onToggleTheme={toggleTheme}
+        theme={theme}
         googleUser={googleUser} onSignOut={handleSignOut}
       />
       <div className="jod-main">
         {tab === "dashboard" && <Dashboard beetles={beetles} pairings={pairings} enclosures={enclosures} tubs={tubs} setTab={setTab} theme={theme} />}
-        {tab === "beetles" && <MyBeetles beetles={beetles} setBeetles={setBeetles} theme={theme} />}
-        {tab === "breeding" && <Breeding beetles={beetles} setBeetles={setBeetles} pairings={pairings} setPairings={setPairings} tubs={tubs} setTubs={setTubs} enclosures={enclosures} />}
+        {tab === "beetles" && <MyBeetles beetles={beetles} setBeetles={setBeetles} catalog={catalog} setCatalog={setCatalog} theme={theme} />}
+        {tab === "breeding" && <Breeding beetles={beetles} setBeetles={setBeetles} pairings={pairings} setPairings={setPairings} tubs={tubs} setTubs={setTubs} enclosures={enclosures} catalog={catalog} />}
         {tab === "settings" && <Settings enclosures={enclosures} setEnclosures={setEnclosures} />}
       </div>
     </div>

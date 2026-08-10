@@ -207,6 +207,8 @@
   .pairbox-fields-col .span2 { grid-column: 1 / -1; }
   .pairbox-preview-col label, .pairbox-fields-col label { display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-faint); margin-bottom: 5px; }
   .pairbox-field-row { display: flex; flex-direction: column; gap: 12px; }
+  .pairbox-field-row-substrate { display: flex; flex-direction: row; gap: 12px; }
+  .pairbox-field-row-substrate .form-field { flex: 1; min-width: 0; }
   .form-grid .span2 { grid-column: 1 / -1; }
   .form-field, .form-grid > *, .pairbox-fields-col > * { min-width: 0; }
   .form-field label { display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-faint); margin-bottom: 5px; }
@@ -392,8 +394,7 @@
     .jod-nav-item { flex-shrink: 0; padding: 8px 12px; }
     .jod-sidebar-foot { display: none; }
     .row2, .charts-row, .form-grid, .sheet-grid, .bulk-grid, .pairbox-form-layout { grid-template-columns: 1fr; }
-    .pairbox-field-row { flex-direction: row; gap: 10px; }
-    .pairbox-field-row .form-field { flex: 1; min-width: 0; }
+    .pairbox-field-row-substrate { flex-direction: column; }
 
     /* Compact user/login row: name+avatar and Log-Out sit side by side instead of stacked
        full-width blocks, so the sidebar bar stays short and content starts right below it. */
@@ -2250,7 +2251,7 @@ function TubForm({ initial, pairings, enclosures, beetles, onSave, onClose }) {
           <div className="form-field span2">
             <label className="form-check-label" style={{ marginTop: 0 }}>
               <input type="checkbox" checked={f.useRottenWood} onChange={(e) => set("useRottenWood", e.target.checked)} />
-              กล่องเพาะด้วงคีม (ใช้ไม้ผุ) — ไม่ติ๊ก = กล่องเพาะด้วงกว่าง (ไม่ใช้ไม้ผุ)
+              ใช้ไม้ผุ
             </label>
           </div>
           {f.useRottenWood && (
@@ -2437,14 +2438,14 @@ function Breeding({ beetles, setBeetles, pairings, setPairings, tubs, setTubs, e
                 </select>
               </div>
             </div>
-            <div className="pairbox-field-row">
+            <div className="pairbox-field-row-substrate">
               <div className="form-field"><label>วัสดุการเพาะ (แมท)</label><input className="form-input" placeholder="เช่น Premium Mat สูตร L3, มาตรฐาน EU" value={form.substrateType} onChange={(e) => setForm({ ...form, substrateType: e.target.value })} /></div>
               <div className="form-field"><label>ขนาดกล่องเพาะ (L)</label><input className="form-input" type="number" min="0" step="0.5" placeholder="เช่น 5" value={form.boxSizeL} onChange={(e) => setForm({ ...form, boxSizeL: e.target.value })} /></div>
             </div>
             <div className="form-field span2">
               <label className="form-check-label" style={{ marginTop: 0 }}>
                 <input type="checkbox" checked={form.useRottenWood} onChange={(e) => setForm({ ...form, useRottenWood: e.target.checked })} />
-                กล่องเพาะด้วงคีม (ใช้ไม้ผุ) — ไม่ติ๊ก = กล่องเพาะด้วงกว่าง (ไม่ใช้ไม้ผุ)
+                ใช้ไม้ผุ
               </label>
             </div>
             {form.useRottenWood && (

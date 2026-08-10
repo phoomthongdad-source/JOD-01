@@ -99,6 +99,15 @@
   .login-mode-pill.active { background: var(--accent-soft); border-color: var(--accent-dim); color: var(--accent-strong); cursor: default; }
   span.login-mode-pill { cursor: default; }
 
+  .login-gate { align-items: center; justify-content: center; padding: 20px; }
+  .login-gate-card {
+    width: 100%; max-width: 340px; background: var(--panel); border: 1px solid var(--border-soft);
+    border-radius: 16px; padding: 32px 28px; display: flex; flex-direction: column; align-items: center; text-align: center;
+  }
+  .login-gate-title { font-size: 20px; font-weight: 700; letter-spacing: 0.04em; margin-top: 14px; }
+  .login-gate-desc { font-size: 12px; color: var(--text-faint); margin-top: 6px; margin-bottom: 22px; }
+  .login-gate-btn { width: 100%; justify-content: center; margin-bottom: 10px; padding: 11px; font-size: 13.5px; }
+
   .jod-main { flex: 1; padding: 28px 34px 60px; overflow-y: auto; max-height: 100vh; }
   .jod-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 22px; flex-wrap: wrap; gap: 12px; }
   .jod-title { font-size: 26px; font-weight: 600; }
@@ -964,6 +973,49 @@ function LoginPanel() {
         {supabaseConfigured
           ? "Guest = เก็บข้อมูลในเครื่องนี้เท่านั้น · Gmail = ซิงค์ข้อมูลข้ามอุปกรณ์จริงผ่าน Supabase"
           : "กำลังใช้งานแบบ Guest (เก็บข้อมูลในเครื่องนี้) · Gmail ต้องตั้งค่า Supabase ก่อนจึงจะซิงค์ข้ามเครื่องได้จริง"}
+      </div>
+    </div>
+  );
+}
+
+/** Full-screen LOG-IN gate shown when entering the site (before the person has chosen Guest or
+ *  signed in). Same two choices as the sidebar's LoginPanel, just presented up front. */
+function LoginGate({ theme, onContinueAsGuest }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleGmail = async () => {
+    setBusy(true); setError("");
+    try {
+      await signInWithGoogleSupabase();
+      // Page will navigate away to Google here; nothing more to do on this side.
+    } catch (e) {
+      console.error("JOD: Gmail sign-in failed", e);
+      setError(supabaseConfigured ? "เข้าสู่ระบบไม่สำเร็จ ลองใหม่อีกครั้ง" : "ต้องตั้งค่า Supabase ก่อน (ดูคอมเมนต์ SUPABASE_CONFIG ในโค้ด)");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className={`jod theme-${theme} login-gate`}>
+      <div className="login-gate-card">
+        <BrandLogo theme={theme} size={44} />
+        <div className="login-gate-title disp">LOG-IN</div>
+        <div className="login-gate-desc">บันทึกภาคสนามสำหรับผู้เพาะเลี้ยงด้วงกว่าง</div>
+
+        <button className="btn btn-primary login-gate-btn" onClick={handleGmail} disabled={busy}>
+          <LogInIcon size={15} /> {busy ? "กำลังเข้าสู่ระบบ…" : "เข้าสู่ระบบด้วย Gmail"}
+        </button>
+        <button className="btn login-gate-btn" onClick={onContinueAsGuest} disabled={busy}>
+          <CheckSquare size={15} /> ใช้งานแบบ Guest
+        </button>
+
+        {error && <div className="account-hint" style={{ color: "var(--rust)", marginTop: 10 }}>{error}</div>}
+        <div className="account-hint" style={{ marginTop: 12 }}>
+          {supabaseConfigured
+            ? "Guest = เก็บข้อมูลในเครื่องนี้เท่านั้น · Gmail = ซิงค์ข้อมูลข้ามอุปกรณ์จริงผ่าน Supabase"
+            : "Gmail ต้องตั้งค่า Supabase ก่อนจึงจะซิงค์ข้ามเครื่องได้จริง · เลือก Guest เพื่อใช้งานได้ทันที"}
+        </div>
       </div>
     </div>
   );
@@ -2621,6 +2673,7 @@ function App() {
   const [theme, setTheme] = useState("dark");
   const [googleUser, setGoogleUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
+  const [hasEntered, setHasEntered] = useState(false);
 
   // Data is namespaced per signed-in account: Supabase Postgres (real cross-device sync) when signed
   // in with Gmail and Supabase is configured, otherwise a local key scoped to that account's email —
@@ -2636,6 +2689,7 @@ function App() {
     (async () => {
       const systemPrefersLight = typeof window.matchMedia === "function" && window.matchMedia("(prefers-color-scheme: light)").matches;
       setTheme(await loadKey("jod:theme", systemPrefersLight ? "light" : "dark"));
+      setHasEntered(await loadKey("jod:hasEntered", false));
 
       if (ensureSupabase()) {
         try {
@@ -2688,9 +2742,18 @@ function App() {
     setGoogleUser(null);
     signOutSupabase();
   };
+  const handleContinueAsGuest = () => {
+    setHasEntered(true);
+    saveKey("jod:hasEntered", true);
+  };
 
   if (!beetles || !pairings || !enclosures || !tubs) {
     return <div className={`jod theme-${theme}`} style={{ alignItems: "center", justifyContent: "center" }}><div className="mono" style={{ color: "var(--text-faint)" }}>กำลังโหลดข้อมูล…</div></div>;
+  }
+
+  // Show the LOG-IN gate on entry until the person picks Guest or is already signed in.
+  if (!hasEntered && !googleUser) {
+    return <LoginGate theme={theme} onContinueAsGuest={handleContinueAsGuest} />;
   }
 
   return (

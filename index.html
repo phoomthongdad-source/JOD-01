@@ -80,6 +80,7 @@
   .jod-nav-item.active { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent-dim); }
   .jod-nav-item svg { flex-shrink: 0; }
   .jod-sidebar-foot { margin-top: auto; padding: 10px; border-top: 1px solid var(--border-soft); font-size: 10.5px; color: var(--text-faint); line-height: 1.5; }
+  .sidebar-account-row { display: flex; flex-direction: column; }
   .user-menu { position: relative; border-top: 1px solid var(--border-soft); padding-top: 10px; margin-top: 8px; }
   .user-menu-trigger {
     width: 100%; display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px;
@@ -384,10 +385,17 @@
     .jod { flex-direction: column; }
     .jod-sidebar { width: 100%; flex-direction: column; border-right: none; border-bottom: 1px solid var(--border-soft); padding: 10px 12px; gap: 10px; }
     .jod-brand { border-bottom: none; margin-bottom: 0; padding: 2px 2px 8px; }
-    .jod-nav-list { flex-direction: row; overflow-x: auto; gap: 6px; padding-bottom: 2px; }
+    .jod-nav-list { flex-direction: row; overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 6px; padding-bottom: 2px; }
     .jod-nav-item { flex-shrink: 0; padding: 8px 12px; }
     .jod-sidebar-foot { display: none; }
     .row2, .charts-row, .form-grid, .sheet-grid, .bulk-grid, .pairbox-form-layout { grid-template-columns: 1fr; }
+
+    /* Compact user/login row: name+avatar and Log-Out sit side by side instead of stacked
+       full-width blocks, so the sidebar bar stays short and content starts right below it. */
+    .sidebar-account-row { flex-direction: row; align-items: center; gap: 8px; }
+    .user-menu { flex: 1; min-width: 0; border-top: none; padding-top: 0; margin-top: 0; }
+    .user-menu-dropdown { min-width: 220px; }
+    .sidebar-logout-btn { width: auto; margin-top: 0; flex-shrink: 0; }
   }
 
   /* Phone-sized screens: tighter spacing, smaller type, full-width touch-friendly controls. */
@@ -1239,8 +1247,10 @@ function Sidebar({ tab, setTab, counts, theme, googleUser, onSignOut }) {
         ))}
       </div>
 
-      <UserMenu googleUser={googleUser} onSignOut={onSignOut} />
-      <button className="btn btn-sm sidebar-logout-btn" onClick={onSignOut}><LogOutIcon size={12} /> Log-Out</button>
+      <div className="sidebar-account-row">
+        <UserMenu googleUser={googleUser} onSignOut={onSignOut} />
+        <button className="btn btn-sm sidebar-logout-btn" onClick={onSignOut}><LogOutIcon size={12} /> Log-Out</button>
+      </div>
       <div className="jod-sidebar-foot">จดบันทึกข้อมูลการเพาะเลี้ยงด้วง — ข้อมูลถูกเก็บไว้ในเครื่องของคุณ</div>
     </div>
   );

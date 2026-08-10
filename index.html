@@ -117,7 +117,6 @@
 
   .jod-main { flex: 1; padding: 28px 34px 60px; overflow-y: auto; max-height: 100vh; }
   .jod-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 22px; flex-wrap: wrap; gap: 12px; }
-  .settings-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .settings-login-compact { display: flex; align-items: center; gap: 6px; background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: 100px; padding: 4px 6px 4px 4px; }
   .settings-login-email { font-size: 10.5px; color: var(--text-dim); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .jod-title { font-size: 26px; font-weight: 600; }
@@ -400,17 +399,28 @@
 
   /* Phone-sized screens: tighter spacing, smaller type, full-width touch-friendly controls. */
   @media (max-width: 560px) {
-    .jod-main { padding: 16px 14px 40px; }
-    .jod-title { font-size: 21px; }
-    .jod-header { flex-direction: column; align-items: stretch; gap: 10px; }
-    .jod-header .btn { width: 100%; justify-content: center; }
-    .card { padding: 14px; }
+    .jod-main { padding: 14px 12px 36px; }
+    .jod-title { font-size: 19px; }
+    .jod-desc { font-size: 11.5px; }
+    .jod-header { flex-direction: column; align-items: stretch; gap: 8px; margin-bottom: 16px; }
+    .jod-header > *:last-child { width: 100%; justify-content: center; }
+    .jod-header > div:last-child { display: flex; gap: 6px; }
+    .jod-header > div:last-child .btn { flex: 1; min-width: 0; justify-content: center; padding: 9px 6px; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; gap: 4px; }
+    .card { padding: 12px; }
+    .panel-title { font-size: 12px; margin-bottom: 10px; }
+    .form-grid { gap: 9px; }
+    .form-field label { font-size: 10px; margin-bottom: 3px; }
+    .form-input, .form-select { padding: 8px 9px; font-size: 13px; }
+    .form-section-label { font-size: 10.5px; margin: 10px 0 3px; }
     .modal-backdrop { padding: 0; align-items: flex-end; }
-    .modal { max-width: 100%; border-radius: 16px 16px 0 0; max-height: 92vh; overflow-y: auto; padding: 18px 16px 20px; }
+    .modal { max-width: 100%; border-radius: 16px 16px 0 0; max-height: 92vh; overflow-y: auto; padding: 16px 14px 18px; }
     .beetle-actions { flex-wrap: wrap; }
     .beetle-actions .btn { flex: 1 1 auto; justify-content: center; }
-    .pairbox-preview-col { min-height: 200px; }
-    .grid-stats { grid-template-columns: repeat(2, 1fr); }
+    .pairbox-form-layout { gap: 14px; }
+    .pairbox-preview-col { min-height: 140px; }
+    .tubsection-stage { padding: 6px; }
+    .grid-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .beetle-grid { gap: 10px; }
     .modal-foot { flex-direction: column-reverse; }
     .modal-foot .btn { width: 100%; justify-content: center; }
     table { display: block; overflow-x: auto; white-space: nowrap; }

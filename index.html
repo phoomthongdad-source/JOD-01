@@ -219,6 +219,12 @@
   .form-field input, .form-field select, .form-field textarea { width: 100%; min-width: 0; }
   .form-check-label { display: flex; align-items: center; gap: 6px; margin-top: 7px; font-size: 11px; color: var(--text-dim); text-transform: none; letter-spacing: 0; cursor: pointer; }
   .form-hint { font-size: 10.5px; color: var(--accent-strong); margin-top: 5px; }
+  .growth-chart-empty { font-size: 11px; color: var(--text-faint); padding: 16px 0; text-align: center; }
+  .growth-chart-svg { width: 100%; height: auto; aspect-ratio: 280 / 90; display: block; max-width: 420px; margin: 0 auto; }
+  .growth-chart-meta { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-faint); margin-top: 4px; gap: 6px; }
+  .mat-change-list { display: flex; flex-direction: column; gap: 5px; max-height: 140px; overflow-y: auto; }
+  .mat-change-row { display: flex; align-items: center; gap: 10px; background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: 7px; padding: 6px 9px; font-size: 11.5px; }
+  .mat-change-row span:first-child { flex: 1; color: var(--text-dim); }
   .image-picker { border: 1.5px dashed var(--border); border-radius: 10px; height: 150px; display: flex; align-items: center; justify-content: center; cursor: pointer; background: var(--panel-2); overflow: hidden; transition: border-color .15s; position: relative; }
   .image-picker:hover { border-color: var(--accent-dim); }
   .image-picker-preview { width: 100%; height: 100%; object-fit: cover; }
@@ -704,7 +710,7 @@ const emptyBeetle = () => ({
   stage: "adult", gender: "unknown", sizeMm: "", weightGrams: "", origin: "",
   dateReceived: todayISO(), imageUrl: "", sire: "", dam: "", temp: "", foodType: "", notes: "",
   boxType: "", boxTypeCustom: "", substrate: "", substrateCustom: "", foodItem: "", foodItemCustom: "",
-  jarSize: "", jarSizeCustom: "",
+  jarSize: "", jarSizeCustom: "", matChanges: [],
 });
 
 const emptyTub = () => ({
@@ -1382,6 +1388,41 @@ function Dashboard({ beetles, pairings, enclosures, tubs, setTab, theme }) {
 
 /* ------------------------------- Beetle form -------------------------------- */
 
+/** Small SVG line chart plotting weight-over-time from a mat-change log, colored green when the
+ *  overall trend is rising and rust when falling (flat/neutral for a single point or no change). */
+function GrowthChart({ entries }) {
+  const sorted = [...entries].filter((e) => e.date && e.weight !== "" && e.weight !== undefined).sort((a, b) => a.date.localeCompare(b.date));
+  if (sorted.length === 0) {
+    return <div className="growth-chart-empty">ยังไม่มีข้อมูลน้ำหนัก — เพิ่มบันทึกด้านล่างเพื่อดูกราฟการเจริญเติบโต</div>;
+  }
+  const weights = sorted.map((e) => Number(e.weight));
+  const minW = Math.min(...weights), maxW = Math.max(...weights);
+  const range = maxW - minW || 1;
+  const W = 280, H = 90, PAD = 12;
+  const trend = weights[weights.length - 1] - weights[0];
+  const color = trend > 0 ? "var(--accent-strong)" : trend < 0 ? "var(--rust)" : "var(--text-faint)";
+  const pts = sorted.map((e, i) => {
+    const x = sorted.length === 1 ? W / 2 : PAD + (i / (sorted.length - 1)) * (W - PAD * 2);
+    const y = H - PAD - ((Number(e.weight) - minW) / range) * (H - PAD * 2);
+    return { x, y, w: e.weight, d: e.date };
+  });
+  const path = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="growth-chart-svg" preserveAspectRatio="xMidYMid meet">
+        <path d={path} fill="none" stroke={color} strokeWidth="2" />
+        {pts.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r="3" fill={color} />)}
+      </svg>
+      <div className="growth-chart-meta">
+        <span>{sorted[0].date} · {sorted[0].weight} g</span>
+        <span className="mono" style={{ color }}>{trend > 0 ? "▲" : trend < 0 ? "▼" : "—"} {Math.abs(trend).toFixed(2)} g</span>
+        <span>{sorted[sorted.length - 1].date} · {sorted[sorted.length - 1].weight} g</span>
+      </div>
+    </div>
+  );
+}
+
+
 function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) {
   const [f, setF] = useState(initial);
   const [autoId, setAutoId] = useState(false);
@@ -1430,6 +1471,43 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
     setF((prev) => ({ ...prev, speciesCode: code }));
     setNewSpeciesName(""); setShowAddSpecies(false);
   };
+
+  const [editingCat, setEditingCat] = useState(false);
+  const [catLabelDraft, setCatLabelDraft] = useState("");
+  const startEditCat = () => { setCatLabelDraft(activeCat.label); setEditingCat(true); };
+  const saveEditCat = () => {
+    const label = catLabelDraft.trim();
+    if (label) setCatalog((prev) => ({ ...prev, [f.categoryId]: { ...prev[f.categoryId], label } }));
+    setEditingCat(false);
+  };
+
+  const [editingSpecies, setEditingSpecies] = useState(false);
+  const [speciesNameDraft, setSpeciesNameDraft] = useState("");
+  const startEditSpecies = () => { if (speciesEntry) { setSpeciesNameDraft(speciesEntry.name); setEditingSpecies(true); } };
+  const saveEditSpecies = () => {
+    const name = speciesNameDraft.trim();
+    if (name && speciesEntry) {
+      setCatalog((prev) => ({
+        ...prev,
+        [f.categoryId]: { ...prev[f.categoryId], species: prev[f.categoryId].species.map((s) => (s.code === f.speciesCode ? { ...s, name } : s)) },
+      }));
+    }
+    setEditingSpecies(false);
+  };
+
+  // Growth tracking (L1-L3/pupa): a log of mat-change events (date + weight), used to draw a
+  // simple growth-trend chart referencing weight gained/lost between changes.
+  const [newMatDate, setNewMatDate] = useState(todayISO());
+  const [newMatWeight, setNewMatWeight] = useState("");
+  const matChanges = f.matChanges || [];
+  const addMatChange = () => {
+    const w = newMatWeight.trim();
+    if (!newMatDate || w === "") return;
+    const entry = { id: uid("MAT"), date: newMatDate, weight: Number(w) };
+    setF((prev) => ({ ...prev, matChanges: [...(prev.matChanges || []), entry].sort((a, b) => a.date.localeCompare(b.date)) }));
+    setNewMatWeight("");
+  };
+  const removeMatChange = (id) => setF((prev) => ({ ...prev, matChanges: (prev.matChanges || []).filter((m) => m.id !== id) }));
 
   const potentialSires = beetles.filter((b) => (b.gender === "male" || b.gender === "pair") && b.stage === "adult" && b.id !== f.id);
   const potentialDams = beetles.filter((b) => (b.gender === "female" || b.gender === "pair") && b.stage === "adult" && b.id !== f.id);
@@ -1486,8 +1564,15 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
               <select className="form-select" value={f.categoryId} onChange={(e) => handleCategoryChange(e.target.value)}>
                 {Object.entries(catalog).map(([id, c]) => <option key={id} value={id}>{c.label}</option>)}
               </select>
+              <button type="button" className="btn btn-sm" title="แก้ไขชื่อหมวดหมู่" onClick={startEditCat}><Pencil size={12} /></button>
               <button type="button" className="btn btn-sm" title="เพิ่มหมวดหมู่ใหม่" onClick={() => setShowAddCat((v) => !v)}><Plus size={12} /></button>
             </div>
+            {editingCat && (
+              <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                <input className="form-input" placeholder="ชื่อหมวดหมู่" value={catLabelDraft} onChange={(e) => setCatLabelDraft(e.target.value)} />
+                <button type="button" className="btn btn-sm btn-primary" onClick={saveEditCat} disabled={!catLabelDraft.trim()}>บันทึก</button>
+              </div>
+            )}
             {showAddCat && (
               <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
                 <input className="form-input" placeholder="ชื่อหมวดหมู่ใหม่" value={newCatLabel} onChange={(e) => setNewCatLabel(e.target.value)} />
@@ -1502,8 +1587,15 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
                 <option value="custom">— ระบุเอง —</option>
                 {activeCat.species.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
               </select>
+              {speciesEntry && <button type="button" className="btn btn-sm" title="แก้ไขชื่อสายพันธุ์" onClick={startEditSpecies}><Pencil size={12} /></button>}
               <button type="button" className="btn btn-sm" title="เพิ่มสายพันธุ์ใหม่ในหมวดหมู่นี้" onClick={() => setShowAddSpecies((v) => !v)}><Plus size={12} /></button>
             </div>
+            {editingSpecies && (
+              <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                <input className="form-input" placeholder="ชื่อสายพันธุ์ย่อย" value={speciesNameDraft} onChange={(e) => setSpeciesNameDraft(e.target.value)} />
+                <button type="button" className="btn btn-sm btn-primary" onClick={saveEditSpecies} disabled={!speciesNameDraft.trim()}>บันทึก</button>
+              </div>
+            )}
             {showAddSpecies && (
               <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
                 <input className="form-input" placeholder="ชื่อสายพันธุ์ย่อย" value={newSpeciesName} onChange={(e) => setNewSpeciesName(e.target.value)} />
@@ -1643,6 +1735,33 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
               {f.jarSize === "ระบุเอง" && (
                 <div className="form-field"><label>ระบุขนาดกระปุก</label><input className="form-input" placeholder="เช่น 650 ML" value={f.jarSizeCustom} onChange={(e) => set("jarSizeCustom", e.target.value)} /></div>
               )}
+            </>
+          )}
+
+          {["l1", "l2", "l3", "pupa"].includes(f.stage) && (
+            <>
+              <div className="form-section-label">8. Growth Tracking — บันทึกการเปลี่ยนแมท</div>
+              <div className="form-field span2">
+                <GrowthChart entries={matChanges} />
+              </div>
+              {matChanges.length > 0 && (
+                <div className="form-field span2">
+                  <div className="mat-change-list">
+                    {matChanges.map((m) => (
+                      <div className="mat-change-row" key={m.id}>
+                        <span className="mono">{m.date}</span>
+                        <span className="mono">{m.weight} g</span>
+                        <button type="button" className="btn btn-sm btn-danger" onClick={() => removeMatChange(m.id)}><Trash2 size={11} /></button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="form-field"><label>วันที่เปลี่ยนแมท</label><div className="date-field-wrap"><input className="form-input" type="date" value={newMatDate} onChange={(e) => setNewMatDate(e.target.value)} /></div></div>
+              <div className="form-field"><label>น้ำหนัก (g)</label><input className="form-input" type="number" step="0.01" placeholder="เช่น 12.5" value={newMatWeight} onChange={(e) => setNewMatWeight(e.target.value)} /></div>
+              <div className="form-field span2">
+                <button type="button" className="btn btn-sm" onClick={addMatChange} disabled={!newMatDate || newMatWeight.trim() === ""}><Plus size={12} /> เพิ่มบันทึกการเปลี่ยนแมท</button>
+              </div>
             </>
           )}
 

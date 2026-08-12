@@ -705,7 +705,7 @@ const FOOD_ITEMS = ["เยลลี่สำหรับด้วง", "ผล�
 const JAR_SIZES = ["300 ML", "500 ML", "750 ML", "1 L", "1.5 L", "16 OZ", "32 OZ", "ระบุเอง"];
 
 const emptyBeetle = () => ({
-  id: "", categoryId: "other", speciesCode: "custom", customSpeciesName: "", species: "",
+  id: "", categoryId: "", speciesCode: "", customSpeciesName: "", species: "",
   subSpecies: "", locality: "", line: "",
   stage: "adult", gender: "unknown", sizeMm: "", weightGrams: "", origin: "",
   dateReceived: todayISO(), imageUrl: "", sire: "", dam: "", temp: "", foodType: "", notes: "",
@@ -1429,6 +1429,17 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
   const fileInputRef = useRef(null);
   const set = (k, v) => setF((prev) => ({ ...prev, [k]: v }));
 
+  useEffect(() => {
+    if (!f.categoryId) {
+      const firstCatId = Object.keys(catalog).find((id) => id !== "other");
+      if (firstCatId) {
+        const cat = catalog[firstCatId];
+        setF((prev) => ({ ...prev, categoryId: firstCatId, speciesCode: cat.species.length ? cat.species[0].code : "" }));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleFileChange = async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
@@ -1447,7 +1458,7 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
 
   // Section 2 (ID & Lifecycle) unlocks only once Taxonomy is filled in: a category plus either a
   // picked species or a typed custom species name.
-  const taxonomyComplete = !!(f.categoryId && ((f.speciesCode && f.speciesCode !== "custom") || (f.customSpeciesName && f.customSpeciesName.trim())));
+  const taxonomyComplete = !!(f.categoryId && f.speciesCode);
 
   const [showAddCat, setShowAddCat] = useState(false);
   const [newCatLabel, setNewCatLabel] = useState("");
@@ -1459,7 +1470,7 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
     if (!label) return;
     const id = uid("cat");
     setCatalog((prev) => ({ ...prev, [id]: { label, species: [] } }));
-    setF((prev) => ({ ...prev, categoryId: id, speciesCode: "custom" }));
+    setF((prev) => ({ ...prev, categoryId: id, speciesCode: "" }));
     setNewCatLabel(""); setShowAddCat(false);
   };
   const quickAddSpecies = () => {
@@ -1512,7 +1523,7 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
   const potentialSires = beetles.filter((b) => (b.gender === "male" || b.gender === "pair") && b.stage === "adult" && b.id !== f.id);
   const potentialDams = beetles.filter((b) => (b.gender === "female" || b.gender === "pair") && b.stage === "adult" && b.id !== f.id);
 
-  const currentSpeciesCode = f.categoryId === "other" || f.speciesCode === "custom" ? "CUS" : (f.speciesCode || "SPC");
+  const currentSpeciesCode = f.speciesCode || "SPC";
   const previewId = nextRunningId(currentSpeciesCode, beetles);
 
   const handleParentInput = (role, value) => {
@@ -1532,13 +1543,11 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
 
   const handleCategoryChange = (newCat) => {
     const cat = catalog[newCat];
-    setF((prev) => ({ ...prev, categoryId: newCat, speciesCode: cat && cat.species.length ? cat.species[0].code : "custom" }));
+    setF((prev) => ({ ...prev, categoryId: newCat, speciesCode: cat && cat.species.length ? cat.species[0].code : "" }));
   };
 
   const submit = () => {
-    const finalSpeciesName = f.categoryId === "other" || f.speciesCode === "custom"
-      ? f.customSpeciesName
-      : (speciesEntry ? speciesEntry.name : f.customSpeciesName);
+    const finalSpeciesName = speciesEntry ? speciesEntry.name : "";
     const finalId = autoId || !f.id ? nextRunningId(currentSpeciesCode, beetles) : f.id;
     onSave({
       ...f, id: finalId, species: finalSpeciesName,
@@ -1562,10 +1571,10 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
             <label>หมวดหมู่หลัก</label>
             <div style={{ display: "flex", gap: 6 }}>
               <select className="form-select" value={f.categoryId} onChange={(e) => handleCategoryChange(e.target.value)}>
-                {Object.entries(catalog).map(([id, c]) => <option key={id} value={id}>{c.label}</option>)}
+                {Object.entries(catalog).filter(([id]) => id !== "other").map(([id, c]) => <option key={id} value={id}>{c.label}</option>)}
               </select>
-              <button type="button" className="btn btn-sm" title="แก้ไขชื่อหมวดหมู่" onClick={startEditCat}><Pencil size={12} /></button>
-              <button type="button" className="btn btn-sm" title="เพิ่มหมวดหมู่ใหม่" onClick={() => setShowAddCat((v) => !v)}><Plus size={12} /></button>
+              {f.categoryId && <button type="button" className="btn btn-sm" title="แก้ไขชื่อหมวดหมู่" onClick={startEditCat}><Pencil size={12} /></button>}
+              <button type="button" className="btn btn-sm" title="เพิ่มหมวดหมู่หลัก" onClick={() => setShowAddCat((v) => !v)}><Plus size={12} /></button>
             </div>
             {editingCat && (
               <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
@@ -1584,11 +1593,10 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
             <label>สายพันธุ์ย่อย</label>
             <div style={{ display: "flex", gap: 6 }}>
               <select className="form-select" value={f.speciesCode} onChange={(e) => set("speciesCode", e.target.value)}>
-                <option value="custom">— ระบุเอง —</option>
                 {activeCat.species.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
               </select>
               {speciesEntry && <button type="button" className="btn btn-sm" title="แก้ไขชื่อสายพันธุ์" onClick={startEditSpecies}><Pencil size={12} /></button>}
-              <button type="button" className="btn btn-sm" title="เพิ่มสายพันธุ์ใหม่ในหมวดหมู่นี้" onClick={() => setShowAddSpecies((v) => !v)}><Plus size={12} /></button>
+              <button type="button" className="btn btn-sm" title="เพิ่มสายพันธุ์ย่อย" onClick={() => setShowAddSpecies((v) => !v)}><Plus size={12} /></button>
             </div>
             {editingSpecies && (
               <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
@@ -1603,12 +1611,6 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
               </div>
             )}
           </div>
-          {(f.speciesCode === "custom" || f.categoryId === "other") && (
-            <div className="form-field span2">
-              <label>ชื่อชนิดพันธุ์ (ระบุเอง)</label>
-              <input className="form-input" placeholder="เช่น Dynastes hercules reidi (ด้วงกว่างเฮอร์คิวลีส เรดิ)" value={f.customSpeciesName} onChange={(e) => set("customSpeciesName", e.target.value)} />
-            </div>
-          )}
 
           <div className="form-section-label">2. ID & Lifecycle</div>
           {!taxonomyComplete && (
@@ -2500,7 +2502,7 @@ function Breeding({ beetles, setBeetles, pairings, setPairings, tubs, setTubs, e
           ...emptyBeetle(),
           id: `${prefix}${String(max).padStart(3, "0")}`,
           categoryId: catId,
-          speciesCode: tub.speciesCode || "custom",
+          speciesCode: tub.speciesCode || "",
           customSpeciesName: tub.species || "",
           species: speciesName,
           stage,

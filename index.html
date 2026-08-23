@@ -2497,6 +2497,7 @@ function Breeding({ beetles, setBeetles, pairings, setPairings, tubs, setTubs, e
     sireId: "", damId: "", dateStarted: todayISO(), notes: "",
     enclosureId: "", substrateType: "", useRottenWood: false, rottenWoodCount: "", compaction: 70, boxSizeL: "",
   });
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const males = beetles.filter((b) => (b.gender === "male" || b.gender === "pair") && b.stage === "adult");
   const females = beetles.filter((b) => (b.gender === "female" || b.gender === "pair") && b.stage === "adult");
 
@@ -2525,16 +2526,14 @@ function Breeding({ beetles, setBeetles, pairings, setPairings, tubs, setTubs, e
       notes: "",
     }, ...prev]);
     setForm({ sireId: "", damId: "", dateStarted: todayISO(), notes: "", enclosureId: "", substrateType: "", useRottenWood: false, rottenWoodCount: "", compaction: 70, boxSizeL: "" });
+    setShowCreateModal(false);
   };
 
-  const setStatus = (id, status) => setPairings((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)));
   const removePairing = (id) => {
     setPairings((prev) => prev.filter((p) => p.id !== id));
     setTubs((prev) => prev.filter((t) => t.pairingId !== id));
   };
   const enclosureName = (id) => (enclosures.find((e) => e.id === id) || {}).name || "—";
-  const nextStatus = { laying: "complete", complete: "complete" };
-  const statusLabel = { laying: "วางไข่", complete: "เสร็จสิ้น" };
 
   const [editTub, setEditTub] = useState(null);
   const saveEditedTub = (tub) => {
@@ -2599,10 +2598,13 @@ function Breeding({ beetles, setBeetles, pairings, setPairings, tubs, setTubs, e
           <div className="jod-title disp">BREEDING</div>
           <div className="jod-desc">{pairings.length} คู่ผสมทั้งหมด · {males.length} ตัวผู้พร้อมผสม · {females.length} ตัวเมียพร้อมผสม</div>
         </div>
+        <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}><Plus size={14} /> จัดกล่องเพาะ</button>
       </div>
 
-      <div className="card" style={{ marginBottom: 20 }}>
-        <div className="panel-title"><span className="tag-dot" />สร้างคู่ผสมใหม่ + กล่องเพาะ</div>
+      {showCreateModal && (
+        <div className="modal-backdrop" onClick={(ev) => ev.target === ev.currentTarget && setShowCreateModal(false)}>
+          <div className="modal" style={{ maxWidth: 880 }}>
+        <div className="panel-title"><span className="tag-dot" />จัดกล่องเพาะ</div>
         <div className="pairbox-form-layout">
           <div className="pairbox-preview-col">
             <label>ตัวอย่างกล่องเพาะ (Section Preview)</label>
@@ -2670,9 +2672,12 @@ function Breeding({ beetles, setBeetles, pairings, setPairings, tubs, setTubs, e
         </div>
 
         <div className="modal-foot">
+          <button className="btn" onClick={() => setShowCreateModal(false)}>ยกเลิก</button>
           <button className="btn btn-primary" onClick={addPairingWithBox} disabled={!form.sireId || !form.damId}><Plus size={14} /> บันทึกคู่ผสม + กล่องเพาะ</button>
         </div>
-      </div>
+          </div>
+        </div>
+      )}
 
       {pairings.length === 0 ? (
         <div className="empty-state"><Heart size={30} /><div>ยังไม่มีการจับคู่ผสมพันธุ์</div></div>
@@ -2692,15 +2697,6 @@ function Breeding({ beetles, setBeetles, pairings, setPairings, tubs, setTubs, e
                 <div className="jod-eyebrow" style={{ marginBottom: 3 }}>กล่องเพาะ</div>
                 <div className="disp pairbox-title">{p.sireId} × {p.damId}</div>
                 {tub && tub.species && <div className="beetle-sub">{tub.species}</div>}
-                {(() => {
-                  const pStatus = p.status === "pairing" ? "laying" : p.status;
-                  return (
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                      <span className={`status-pill status-${pStatus}`}>{statusLabel[pStatus]}</span>
-                      {pStatus !== "complete" && <button className="btn btn-sm" onClick={() => setStatus(p.id, nextStatus[pStatus])}>ทำเครื่องหมายเป็น "{statusLabel[nextStatus[pStatus]]}"</button>}
-                    </div>
-                  );
-                })()}
 
                 {tub ? (
                   <>

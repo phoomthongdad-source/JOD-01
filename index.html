@@ -194,9 +194,11 @@
   .beetle-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
   .badge { font-size: 10px; padding: 2px 7px; border-radius: 100px; border: 1px solid var(--border); color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; display: inline-flex; align-items: center; gap: 4px; }
   .badge.gender-male { color: var(--accent-strong); border-color: var(--accent-dim); font-weight: 700; }
+  .badge.activity-status-eating { color: var(--accent-strong); border-color: var(--accent-dim); background: var(--accent-soft); font-weight: 700; }
+  .badge.activity-status-dormant { color: var(--rust); border-color: var(--rust); background: var(--rust-soft); font-weight: 700; }
   .badge.gender-female { color: var(--rust); border-color: var(--rust); }
   .beetle-meta { font-size: 11.5px; color: var(--text-dim); display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px; }
-  .beetle-actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; border-top: 1px solid var(--border-soft); padding-top: 10px; }
+  .beetle-actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: nowrap; border-top: 1px solid var(--border-soft); padding-top: 10px; }
 
   .empty-state { text-align: center; padding: 50px 20px; color: var(--text-faint); }
   .empty-state svg { margin-bottom: 10px; opacity: 0.5; }
@@ -585,8 +587,9 @@ const STAGES = [
   { value: "l2", label: "ตัวอ่อน L2" },
   { value: "l3", label: "ตัวอ่อน L3" },
   { value: "pupa", label: "ดักแด้ (PUPA)" },
-  { value: "adult", label: "ตัวเต็มวัย (ADULT)" },
+  { value: "adult", label: "ตัวเต็มวัย" },
 ];
+const ACTIVITY_STATUS_LABEL = { eating: "กำลังกิน", dormant: "พักตัว" };
 const GENDERS = [
   { value: "male", label: "ผู้ ♂" },
   { value: "female", label: "เมีย ♀" },
@@ -710,7 +713,7 @@ const emptyBeetle = () => ({
   stage: "adult", gender: "unknown", sizeMm: "", weightGrams: "", origin: "",
   dateReceived: todayISO(), imageUrl: "", sire: "", dam: "", temp: "", foodType: "", notes: "",
   boxType: "", boxTypeCustom: "", substrate: "", substrateCustom: "", foodItem: "", foodItemCustom: "",
-  jarSize: "", jarSizeCustom: "", matChanges: [],
+  jarSize: "", jarSizeCustom: "", matChanges: [], activityStatus: "", activityStatusDate: "",
 });
 
 const emptyTub = () => ({
@@ -735,6 +738,16 @@ function daysSince(dateStr) {
   if (isNaN(start.getTime())) return null;
   const diff = Math.floor((Date.now() - start.getTime()) / (1000 * 60 * 60 * 24));
   return diff < 0 ? 0 : diff;
+}
+
+/** Formats an elapsed-days count as a real-time-friendly string — plain days (zero-padded) under
+ *  a week, whole weeks under a month, and whole months beyond that. Used for both the beetle
+ *  intake-date counter and the breeding-pairing day counter, so both read consistently. */
+function formatElapsed(days) {
+  if (days === null || days === undefined) return "";
+  if (days < 7) return `${String(days).padStart(2, "0")} วัน`;
+  if (days < 30) return `${Math.floor(days / 7)} สัปดาห์`;
+  return `${Math.floor(days / 30)} เดือน`;
 }
 
 /** Estimated egg-laying progress dot count — starts at 5 on day 0, grows by 1 per day, caps at 25. */
@@ -1506,6 +1519,23 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
     setEditingSpecies(false);
   };
 
+  const removeCategory = () => {
+    if (!f.categoryId || f.categoryId === "other") return;
+    if (!window.confirm(`ลบหมวดหมู่ "${activeCat.label}" ทั้งหมวดหมู่ (รวมสายพันธุ์ย่อยข้างในทั้งหมด)?`)) return;
+    setCatalog((prev) => {
+      const next = { ...prev };
+      delete next[f.categoryId];
+      return next;
+    });
+    setF((prev) => ({ ...prev, categoryId: "", speciesCode: "" }));
+  };
+  const removeSpecies = () => {
+    if (!speciesEntry) return;
+    if (!window.confirm(`ลบสายพันธุ์ "${speciesEntry.name}"?`)) return;
+    setCatalog((prev) => ({ ...prev, [f.categoryId]: { ...prev[f.categoryId], species: prev[f.categoryId].species.filter((s) => s.code !== f.speciesCode) } }));
+    setF((prev) => ({ ...prev, speciesCode: "" }));
+  };
+
   // Growth tracking (L1-L3/pupa): a log of mat-change events (date + weight), used to draw a
   // simple growth-trend chart referencing weight gained/lost between changes.
   const [newMatDate, setNewMatDate] = useState(todayISO());
@@ -1574,6 +1604,7 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
                 {Object.entries(catalog).filter(([id]) => id !== "other").map(([id, c]) => <option key={id} value={id}>{c.label}</option>)}
               </select>
               {f.categoryId && <button type="button" className="btn btn-sm" title="แก้ไขชื่อหมวดหมู่" onClick={startEditCat}><Pencil size={12} /></button>}
+              {f.categoryId && f.categoryId !== "other" && <button type="button" className="btn btn-sm btn-danger" title="ลบหมวดหมู่" onClick={removeCategory}><Trash2 size={12} /></button>}
               <button type="button" className="btn btn-sm" title="เพิ่มหมวดหมู่หลัก" onClick={() => setShowAddCat((v) => !v)}><Plus size={12} /></button>
             </div>
             {editingCat && (
@@ -1596,6 +1627,7 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
                 {activeCat.species.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
               </select>
               {speciesEntry && <button type="button" className="btn btn-sm" title="แก้ไขชื่อสายพันธุ์" onClick={startEditSpecies}><Pencil size={12} /></button>}
+              {speciesEntry && <button type="button" className="btn btn-sm btn-danger" title="ลบสายพันธุ์" onClick={removeSpecies}><Trash2 size={12} /></button>}
               <button type="button" className="btn btn-sm" title="เพิ่มสายพันธุ์ย่อย" onClick={() => setShowAddSpecies((v) => !v)}><Plus size={12} /></button>
             </div>
             {editingSpecies && (
@@ -1635,6 +1667,18 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
             <select className="form-select" value={f.stage} disabled={!taxonomyComplete} onChange={(e) => set("stage", e.target.value)}>
               {STAGES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
+          </div>
+          <div className="form-field span2">
+            <label>สถานะ (พักตัว/กิน)</label>
+            <select
+              className="form-select" value={f.activityStatus} disabled={!taxonomyComplete}
+              onChange={(e) => setF((prev) => ({ ...prev, activityStatus: e.target.value, activityStatusDate: e.target.value ? todayISO() : "" }))}
+            >
+              <option value="">— ไม่ระบุ —</option>
+              <option value="eating">กำลังกิน</option>
+              <option value="dormant">พักตัว</option>
+            </select>
+            {f.activityStatus && f.activityStatusDate && <div className="recent-meta" style={{ marginTop: 4 }}>ตั้งแต่วันที่ {f.activityStatusDate}</div>}
           </div>
 
           <div className="form-section-label">3. Lineage — สายเลือด</div>
@@ -2040,13 +2084,15 @@ function BoxCard({ beetle, onInfo, onEdit, onDelete }) {
       </div>
       <Box3D beetle={beetle} />
       <div className="beetle-name disp">{beetle.species || beetle.customSpeciesName || "ไม่ระบุชนิดพันธุ์"}</div>
+      {beetle.activityStatus && <span className={`badge activity-status-${beetle.activityStatus}`} style={{ marginBottom: 6, display: "inline-block" }}>{ACTIVITY_STATUS_LABEL[beetle.activityStatus]}</span>}
+      {beetle.dateReceived && <div className="recent-meta" style={{ marginBottom: 6 }}>รับเข้ามา {formatElapsed(daysSince(beetle.dateReceived))}</div>}
       <div className="box-card-rows">
         <div className="box-card-row"><BoxIcon size={14} /><span>{boxLabel || "ยังไม่ระบุกล่องเลี้ยง"}</span></div>
         <div className="box-card-row"><SubstrateIcon size={14} /><span>{substrateLabel || "ยังไม่ระบุวัสดุรองพื้น"}</span></div>
         <div className="box-card-row"><JellyIcon size={14} /><span>{foodLabel || "ยังไม่ระบุอาหาร"}</span></div>
       </div>
       <div className="beetle-actions">
-        <button className="btn btn-sm" onClick={onInfo}><FileText size={12} /> ข้อมูล/LABLE</button>
+        <button className="btn btn-sm" onClick={onInfo}><FileText size={12} /> ข้อมูล</button>
         <button className="btn btn-sm" onClick={onEdit}><Pencil size={12} /> แก้ไข</button>
         <button className="btn btn-sm btn-danger" onClick={onDelete}><Trash2 size={12} /> ลบ</button>
       </div>
@@ -2090,6 +2136,8 @@ function JarCard({ beetle, onInfo, onEdit, onDelete }) {
       </div>
       <JarSection beetle={beetle} />
       <div className="beetle-name disp">{beetle.species || beetle.customSpeciesName || "ไม่ระบุชนิดพันธุ์"}</div>
+      {beetle.activityStatus && <span className={`badge activity-status-${beetle.activityStatus}`} style={{ marginBottom: 6, display: "inline-block" }}>{ACTIVITY_STATUS_LABEL[beetle.activityStatus]}</span>}
+      {beetle.dateReceived && <div className="recent-meta" style={{ marginBottom: 6 }}>รับเข้ามา {formatElapsed(daysSince(beetle.dateReceived))}</div>}
       <div className="box-card-rows">
         <div className="box-card-row"><BoxIcon size={14} /><span>{jarSizeLabel || "ยังไม่ระบุขนาดกระปุก"}</span></div>
         <div className="box-card-row"><SubstrateIcon size={14} /><span>{beetle.foodType || "ยังไม่ระบุอาหาร/วัสดุปูรอง"}</span></div>
@@ -2097,7 +2145,7 @@ function JarCard({ beetle, onInfo, onEdit, onDelete }) {
         {beetle.temp ? <div className="box-card-row"><Thermometer size={14} /><span>{beetle.temp}°C</span></div> : null}
       </div>
       <div className="beetle-actions">
-        <button className="btn btn-sm" onClick={onInfo}><FileText size={12} /> ข้อมูล/LABLE</button>
+        <button className="btn btn-sm" onClick={onInfo}><FileText size={12} /> ข้อมูล</button>
         <button className="btn btn-sm" onClick={onEdit}><Pencil size={12} /> แก้ไข</button>
         <button className="btn btn-sm btn-danger" onClick={onDelete}><Trash2 size={12} /> ลบ</button>
       </div>
@@ -2217,6 +2265,7 @@ function MyBeetles({ beetles, setBeetles, catalog, setCatalog, theme }) {
               {b.subSpecies && <div className="beetle-sub">{b.subSpecies}</div>}
               <div className="beetle-badges">
                 <span className={`badge ${b.gender === "male" ? "gender-male" : b.gender === "female" ? "gender-female" : ""}`}>{(GENDERS.find((g) => g.value === b.gender) || {}).label}</span>
+                {b.activityStatus && <span className={`badge activity-status-${b.activityStatus}`}>{ACTIVITY_STATUS_LABEL[b.activityStatus]}</span>}
                 {b.locality && <span className="badge">{b.locality}</span>}
                 {b.line && <span className="badge">{b.line}</span>}
               </div>
@@ -2224,10 +2273,10 @@ function MyBeetles({ beetles, setBeetles, catalog, setCatalog, theme }) {
                 {b.sizeMm && <span>ขนาด {b.sizeMm} mm</span>}
                 {b.weightGrams && <span>น้ำหนัก {b.weightGrams} g</span>}
                 {b.temp && <span><Thermometer size={11} style={{ verticalAlign: -2 }} /> {b.temp}°C</span>}
-                <span>รับเข้า {b.dateReceived}</span>
+                <span>รับเข้า {b.dateReceived} ({formatElapsed(daysSince(b.dateReceived))})</span>
               </div>
               <div className="beetle-actions">
-                <button className="btn btn-sm" onClick={() => setProfile(b)}><FileText size={12} /> ข้อมูล/LABLE</button>
+                <button className="btn btn-sm" onClick={() => setProfile(b)}><FileText size={12} /> ข้อมูล</button>
                 <button className="btn btn-sm" onClick={() => setModal(b)}><Pencil size={12} /> แก้ไข</button>
                 <button className="btn btn-sm btn-danger" onClick={() => remove(b.id)}><Trash2 size={12} /> ลบ</button>
               </div>
@@ -2613,7 +2662,7 @@ function Breeding({ beetles, setBeetles, pairings, setPairings, tubs, setTubs, e
                   <span className="specimen-tag mono">{tub && tub.speciesCode ? tub.speciesCode : "—"}</span>
                   <div style={{ textAlign: "right" }}>
                     <div className="recent-meta">{p.dateStarted}</div>
-                    {daysSince(p.dateStarted) !== null && <div className="pairbox-daycount mono">{String(daysSince(p.dateStarted)).padStart(2, "0")} วัน</div>}
+                    {daysSince(p.dateStarted) !== null && <div className="pairbox-daycount mono">{formatElapsed(daysSince(p.dateStarted))}</div>}
                   </div>
                 </div>
                 <div className="jod-eyebrow" style={{ marginBottom: 3 }}>กล่องเพาะ</div>

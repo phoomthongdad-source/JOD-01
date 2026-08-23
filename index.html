@@ -752,6 +752,7 @@ function daysSince(dateStr) {
  *  intake-date counter and the breeding-pairing day counter, so both read consistently. */
 function formatElapsed(days) {
   if (days === null || days === undefined) return "";
+  if (days === 0) return "วันนี้";
   if (days < 7) return `${String(days).padStart(2, "0")} วัน`;
   if (days < 30) return `${Math.floor(days / 7)} สัปดาห์`;
   return `${Math.floor(days / 30)} เดือน`;
@@ -2052,9 +2053,9 @@ function BoxCard({ beetle, catalog, onInfo, onEdit, onDelete }) {
       )}
       {beetle.dateReceived && <div className="recent-meta" style={{ marginBottom: 6 }}>รับเข้ามา {formatElapsed(daysSince(beetle.dateReceived))}</div>}
       <div className="box-card-rows">
-        <div className="box-card-row"><BoxIcon size={14} /><span>{boxLabel || "ยังไม่ระบุกล่องเลี้ยง"}</span></div>
-        <div className="box-card-row"><SubstrateIcon size={14} /><span>{substrateLabel || "ยังไม่ระบุวัสดุรองพื้น"}</span></div>
-        <div className="box-card-row"><JellyIcon size={14} /><span>{foodLabel || "ยังไม่ระบุอาหาร"}</span></div>
+        {boxLabel && <div className="box-card-row"><BoxIcon size={14} /><span>{boxLabel}</span></div>}
+        {substrateLabel && <div className="box-card-row"><SubstrateIcon size={14} /><span>{substrateLabel}</span></div>}
+        {foodLabel && <div className="box-card-row"><JellyIcon size={14} /><span>{foodLabel}</span></div>}
       </div>
       <div className="beetle-actions">
         <button className="btn btn-sm" onClick={onInfo}><FileText size={12} /> ข้อมูล</button>

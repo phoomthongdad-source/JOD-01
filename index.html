@@ -2045,10 +2045,9 @@ function BoxCard({ beetle, catalog, onInfo, onEdit, onDelete }) {
       <Box3D beetle={beetle} />
       {categoryLabel && <div className="jod-eyebrow" style={{ marginBottom: 2 }}>{categoryLabel}</div>}
       <div className="beetle-name disp">{beetle.species || beetle.customSpeciesName || "ไม่ระบุชนิดพันธุ์"}</div>
-      {beetle.activityStatus && (
-        <div style={{ marginBottom: 6 }}>
-          <span className={`badge activity-status-${beetle.activityStatus}`}>{ACTIVITY_STATUS_LABEL[beetle.activityStatus]}</span>
-          {activityStatusDetail(beetle) && <span className="recent-meta" style={{ marginLeft: 6 }}>{activityStatusDetail(beetle)}</span>}
+      {!!beetle.activityStatus && (
+        <div className={`activity-status-plain activity-status-plain-${beetle.activityStatus}`} style={{ marginBottom: 6 }}>
+          {ACTIVITY_STATUS_LABEL[beetle.activityStatus]}{activityStatusDetail(beetle) ? ` · ${activityStatusDetail(beetle)}` : ""}
         </div>
       )}
       {beetle.dateReceived && <div className="recent-meta" style={{ marginBottom: 6 }}>รับเข้ามา {formatElapsed(daysSince(beetle.dateReceived))}</div>}
@@ -2104,10 +2103,9 @@ function JarCard({ beetle, catalog, onInfo, onEdit, onDelete }) {
       <JarSection beetle={beetle} />
       {categoryLabel && <div className="jod-eyebrow" style={{ marginBottom: 2 }}>{categoryLabel}</div>}
       <div className="beetle-name disp">{beetle.species || beetle.customSpeciesName || "ไม่ระบุชนิดพันธุ์"}</div>
-      {beetle.activityStatus && (
-        <div style={{ marginBottom: 6 }}>
-          <span className={`badge activity-status-${beetle.activityStatus}`}>{ACTIVITY_STATUS_LABEL[beetle.activityStatus]}</span>
-          {activityStatusDetail(beetle) && <span className="recent-meta" style={{ marginLeft: 6 }}>{activityStatusDetail(beetle)}</span>}
+      {!!beetle.activityStatus && (
+        <div className={`activity-status-plain activity-status-plain-${beetle.activityStatus}`} style={{ marginBottom: 6 }}>
+          {ACTIVITY_STATUS_LABEL[beetle.activityStatus]}{activityStatusDetail(beetle) ? ` · ${activityStatusDetail(beetle)}` : ""}
         </div>
       )}
       {beetle.dateReceived && <div className="recent-meta" style={{ marginBottom: 6 }}>รับเข้ามา {formatElapsed(daysSince(beetle.dateReceived))}</div>}
@@ -2238,14 +2236,16 @@ function MyBeetles({ beetles, setBeetles, catalog, setCatalog, theme }) {
               {b.subSpecies && <div className="beetle-sub">{b.subSpecies}</div>}
               <div className="beetle-badges">
                 <span className={`badge ${b.gender === "male" ? "gender-male" : b.gender === "female" ? "gender-female" : ""}`}>{(GENDERS.find((g) => g.value === b.gender) || {}).label}</span>
-                {b.activityStatus && <span className={`badge activity-status-${b.activityStatus}`}>{ACTIVITY_STATUS_LABEL[b.activityStatus]}{activityStatusDetail(b) ? ` · ${activityStatusDetail(b)}` : ""}</span>}
                 {b.locality && <span className="badge">{b.locality}</span>}
                 {b.line && <span className="badge">{b.line}</span>}
               </div>
+              {!!b.activityStatus && (
+                <div className={`activity-status-plain activity-status-plain-${b.activityStatus}`}>{ACTIVITY_STATUS_LABEL[b.activityStatus]}{activityStatusDetail(b) ? ` · ${activityStatusDetail(b)}` : ""}</div>
+              )}
               <div className="beetle-meta">
-                {b.sizeMm && <span>ขนาด {b.sizeMm} mm</span>}
-                {b.weightGrams && <span>น้ำหนัก {b.weightGrams} g</span>}
-                {b.temp && <span><Thermometer size={11} style={{ verticalAlign: -2 }} /> {b.temp}°C</span>}
+                {!!b.sizeMm && <span>ขนาด {b.sizeMm} mm</span>}
+                {!!b.weightGrams && <span>น้ำหนัก {b.weightGrams} g</span>}
+                {!!b.temp && <span><Thermometer size={11} style={{ verticalAlign: -2 }} /> {b.temp}°C</span>}
                 <span>รับเข้า {b.dateReceived} ({formatElapsed(daysSince(b.dateReceived))})</span>
               </div>
               <div className="beetle-actions">

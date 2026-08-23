@@ -173,6 +173,8 @@
   .beetle-select-box { position: absolute; top: 12px; left: 12px; width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
   .beetle-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
   .beetle-name { font-family: 'Kanit', sans-serif; font-size: 15px; font-weight: 600; margin: 8px 0 2px; }
+  .card-category-label { font-size: 15px; font-weight: 500; color: var(--text-faint); margin-top: 8px; margin-bottom: 0; line-height: 1.25; }
+  .card-category-label + .beetle-name { margin-top: 0; }
   .pairbox-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; letter-spacing: -0.01em; }
   .pairbox-daycount { font-size: 9.5px; color: var(--accent-strong); margin-top: 2px; }
   .tubsection-progress { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
@@ -194,7 +196,7 @@
   .beetle-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
   .badge { font-size: 10px; padding: 2px 7px; border-radius: 100px; border: 1px solid var(--border); color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; display: inline-flex; align-items: center; gap: 4px; }
   .badge.gender-male { color: var(--accent-strong); border-color: var(--accent-dim); font-weight: 700; }
-  .activity-status-plain { font-size: 11px; font-weight: 600; margin-top: -4px; margin-bottom: 8px; }
+  .activity-status-plain { font-size: 11px; font-weight: 600; margin-top: 2px; margin-bottom: 8px; }
   .activity-status-plain-eating { color: var(--accent-strong); }
   .activity-status-plain-dormant { color: var(--rust); }
   .badge.gender-female { color: var(--rust); border-color: var(--rust); }
@@ -233,6 +235,7 @@
   .image-picker-preview { width: 100%; height: 100%; object-fit: cover; }
   .image-picker-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--text-faint); font-size: 12px; }
   .beetle-card-image { width: 100%; height: 110px; object-fit: cover; border-radius: 8px; margin-bottom: 8px; display: block; }
+  .beetle-card-image-placeholder { background: var(--panel-2); border: 1px dashed var(--border-soft); display: flex; align-items: center; justify-content: center; color: var(--text-faint); }
   .view-switch { display: flex; gap: 4px; background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: 8px; padding: 3px; }
   .view-switch .btn { border: none; background: transparent; }
   .view-switch .btn.btn-active { background: var(--accent-soft); border: 1px solid var(--accent-dim); }
@@ -2089,7 +2092,7 @@ function BoxCard({ beetle, catalog, onInfo, onEdit, onDelete }) {
         </span>
       </div>
       <Box3D beetle={beetle} />
-      {categoryLabel && <div className="jod-eyebrow" style={{ marginBottom: 2 }}>{categoryLabel}</div>}
+      {categoryLabel && <div className="card-category-label">{categoryLabel}</div>}
       <div className="beetle-name disp">{beetle.species || beetle.customSpeciesName || "ไม่ระบุชนิดพันธุ์"}</div>
       {!!beetle.activityStatus && (
         <div className={`activity-status-plain activity-status-plain-${beetle.activityStatus}`} style={{ marginBottom: 6 }}>
@@ -2146,7 +2149,7 @@ function JarCard({ beetle, catalog, onInfo, onEdit, onDelete }) {
         <span className="badge">{STAGE_LABEL(beetle)}</span>
       </div>
       <JarSection beetle={beetle} />
-      {categoryLabel && <div className="jod-eyebrow" style={{ marginBottom: 2 }}>{categoryLabel}</div>}
+      {categoryLabel && <div className="card-category-label">{categoryLabel}</div>}
       <div className="beetle-name disp">{beetle.species || beetle.customSpeciesName || "ไม่ระบุชนิดพันธุ์"}</div>
       {!!beetle.activityStatus && (
         <div className={`activity-status-plain activity-status-plain-${beetle.activityStatus}`} style={{ marginBottom: 6 }}>
@@ -2155,7 +2158,7 @@ function JarCard({ beetle, catalog, onInfo, onEdit, onDelete }) {
       )}
       <div className="box-card-rows">
         <div className="box-card-row"><BoxIcon size={14} /><span>{jarSizeLabel || "ยังไม่ระบุขนาดกระปุก"}</span></div>
-        <div className="box-card-row"><SubstrateIcon size={14} /><span>{beetle.foodType || "ยังไม่ระบุอาหาร/วัสดุปูรอง"}</span></div>
+        {beetle.foodType && <div className="box-card-row"><SubstrateIcon size={14} /><span>{beetle.foodType}</span></div>}
         {beetle.weightGrams ? <div className="box-card-row"><JellyIcon size={14} /><span>น้ำหนัก {beetle.weightGrams} g</span></div> : null}
         {beetle.temp ? <div className="box-card-row"><Thermometer size={14} /><span>{beetle.temp}°C</span></div> : null}
       </div>
@@ -2271,12 +2274,16 @@ function MyBeetles({ beetles, setBeetles, catalog, setCatalog, theme }) {
           {filtered.map((b) => (
             <div className={`beetle-card ${selectMode ? "selectable" : ""}`} key={b.id} style={selectMode ? { paddingLeft: 34 } : undefined}>
               {selectMode && <input type="checkbox" className="beetle-select-box" checked={selectedIds.includes(b.id)} onChange={() => toggleSelected(b.id)} />}
-              {b.imageUrl && <img src={b.imageUrl} alt={b.species || b.id} className="beetle-card-image" />}
+              {b.imageUrl ? (
+                <img src={b.imageUrl} alt={b.species || b.id} className="beetle-card-image" />
+              ) : (
+                <div className="beetle-card-image beetle-card-image-placeholder"><ImagePlusIcon size={22} /></div>
+              )}
               <div className="beetle-card-top">
                 <span className="specimen-tag"><Tag size={10} />{b.id}</span>
                 <span className="badge">{STAGE_LABEL(b)}</span>
               </div>
-              {(catalog && catalog[b.categoryId] || {}).label && <div className="jod-eyebrow" style={{ marginBottom: 2 }}>{catalog[b.categoryId].label}</div>}
+              {(catalog && catalog[b.categoryId] || {}).label && <div className="card-category-label">{catalog[b.categoryId].label}</div>}
               <div className="beetle-name disp">{b.species || b.customSpeciesName || "ไม่ระบุชนิดพันธุ์"}</div>
               {b.subSpecies && <div className="beetle-sub">{b.subSpecies}</div>}
               <div className="beetle-badges">

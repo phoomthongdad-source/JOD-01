@@ -721,6 +721,7 @@ const emptyBeetle = () => ({
   dateReceived: todayISO(), imageUrl: "", sire: "", dam: "", temp: "", foodType: "", notes: "",
   boxType: "", boxTypeCustom: "", substrate: "", substrateCustom: "", foodItem: "", foodItemCustom: "",
   jarSize: "", jarSizeCustom: "", matChanges: [], activityStatus: "", activityStatusDate: "",
+  dormantEndDate: "", lastDormancyDays: "", deceasedDate: "",
 });
 
 const emptyTub = () => ({
@@ -1544,6 +1545,29 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
     setF((prev) => ({ ...prev, speciesCode: "" }));
   };
 
+  // Switching status: leaving "dormant" for "eating" auto-captures how many days the dormancy
+  // period lasted (start → end date, or start → today if still ongoing) as a breeding-timing
+  // reference point, per the requested workflow.
+  const handleActivityStatusChange = (newStatus) => {
+    setF((prev) => {
+      if (prev.activityStatus === "dormant" && newStatus === "eating" && prev.activityStatusDate) {
+        const endDate = prev.dormantEndDate || todayISO();
+        const start = new Date(`${prev.activityStatusDate}T00:00:00`);
+        const end = new Date(`${endDate}T00:00:00`);
+        const dormantDays = Math.max(0, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+        return { ...prev, activityStatus: "eating", activityStatusDate: endDate, dormantEndDate: "", lastDormancyDays: dormantDays };
+      }
+      if (!newStatus) return { ...prev, activityStatus: "", activityStatusDate: "", dormantEndDate: "" };
+      return { ...prev, activityStatus: newStatus, activityStatusDate: prev.activityStatusDate || todayISO() };
+    });
+  };
+
+  // End-of-life marker — recorded but intentionally not surfaced on the box/list cards.
+  const toggleDeceased = () => {
+    if (f.deceasedDate) { set("deceasedDate", ""); return; }
+    if (window.confirm("ทำเครื่องหมายว่าสิ้นสุดอายุขัยในวันนี้?")) set("deceasedDate", todayISO());
+  };
+
   // Growth tracking (L1-L3/pupa): a log of mat-change events (date + weight), used to draw a
   // simple growth-trend chart referencing weight gained/lost between changes.
   const [newMatDate, setNewMatDate] = useState(todayISO());
@@ -1678,24 +1702,46 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
           </div>
           <div className="form-field">
             <label>สถานะ (พักตัว/กิน)</label>
-            <select
-              className="form-select" value={f.activityStatus} disabled={!taxonomyComplete}
-              onChange={(e) => setF((prev) => ({ ...prev, activityStatus: e.target.value, activityStatusDate: e.target.value ? (prev.activityStatusDate || todayISO()) : "" }))}
-            >
+            <select className="form-select" value={f.activityStatus} disabled={!taxonomyComplete} onChange={(e) => handleActivityStatusChange(e.target.value)}>
               <option value="">— ไม่ระบุ —</option>
               <option value="eating">กำลังกิน</option>
               <option value="dormant">พักตัว</option>
             </select>
           </div>
-          {f.activityStatus && (
-            <div className="form-field">
-              <label>{f.activityStatus === "dormant" ? "วันที่เริ่มพักตัว" : "วันที่เริ่มกิน"}</label>
-              <div className="date-field-wrap"><input className="form-input" type="date" value={f.activityStatusDate} onChange={(e) => set("activityStatusDate", e.target.value)} /></div>
+          {f.activityStatus === "dormant" && (
+            <>
+              <div className="form-field">
+                <label>วันที่เริ่มพักตัว</label>
+                <div className="date-field-wrap"><input className="form-input" type="date" value={f.activityStatusDate} onChange={(e) => set("activityStatusDate", e.target.value)} /></div>
+              </div>
+              <div className="form-field">
+                <label>วันที่สิ้นสุดการพักตัว (ถ้ามี)</label>
+                <div className="date-field-wrap"><input className="form-input" type="date" value={f.dormantEndDate} onChange={(e) => set("dormantEndDate", e.target.value)} /></div>
+              </div>
               {f.activityStatusDate && (
-                <div className="recent-meta" style={{ marginTop: 4 }}>{f.activityStatus === "dormant" ? "พักตัวมาแล้ว" : "กินมาแล้ว"} {formatElapsed(daysSince(f.activityStatusDate))}</div>
+                <div className="form-hint span2">
+                  พักตัวมาแล้ว {formatElapsed(daysSince(f.activityStatusDate))}{f.dormantEndDate ? ` — สิ้นสุดแล้ว (${f.dormantEndDate})` : " — ยังพักตัวอยู่"}
+                </div>
               )}
-            </div>
+            </>
           )}
+          {f.activityStatus === "eating" && (
+            <>
+              <div className="form-field">
+                <label>วันที่เริ่มกิน</label>
+                <div className="date-field-wrap"><input className="form-input" type="date" value={f.activityStatusDate} onChange={(e) => set("activityStatusDate", e.target.value)} /></div>
+              </div>
+              {f.activityStatusDate && <div className="form-hint">กินมาแล้ว {formatElapsed(daysSince(f.activityStatusDate))}</div>}
+              {f.lastDormancyDays !== "" && f.lastDormancyDays !== undefined && (
+                <div className="form-hint span2">อ้างอิงระยะเพาะพันธุ์: เคยพักตัวมาก่อนหน้านี้ {f.lastDormancyDays} วัน</div>
+              )}
+            </>
+          )}
+          <div className="form-field span2">
+            <button type="button" className={`btn btn-sm ${f.deceasedDate ? "btn-danger" : ""}`} disabled={!taxonomyComplete} onClick={toggleDeceased}>
+              <XIcon size={12} /> {f.deceasedDate ? `สิ้นสุดอายุขัยแล้ว (${f.deceasedDate}) — กดเพื่อยกเลิก` : "ทำเครื่องหมายสิ้นสุดอายุขัย"}
+            </button>
+          </div>
 
           <div className="form-section-label">3. Lineage — สายเลือด</div>
           <div className="form-field">
@@ -2454,7 +2500,7 @@ function Breeding({ beetles, setBeetles, pairings, setPairings, tubs, setTubs, e
     const dam = beetles.find((b) => b.id === form.damId);
     const sire = beetles.find((b) => b.id === form.sireId);
     const src = dam || sire;
-    setPairings((prev) => [{ id: pairingId, sireId: form.sireId, damId: form.damId, dateStarted: form.dateStarted, notes: form.notes, status: "pairing" }, ...prev]);
+    setPairings((prev) => [{ id: pairingId, sireId: form.sireId, damId: form.damId, dateStarted: form.dateStarted, notes: form.notes, status: "laying" }, ...prev]);
     setTubs((prev) => [{
       id: uid("TUB"),
       label: `กล่องเพาะ ${form.sireId} × ${form.damId}`,
@@ -2480,8 +2526,8 @@ function Breeding({ beetles, setBeetles, pairings, setPairings, tubs, setTubs, e
     setTubs((prev) => prev.filter((t) => t.pairingId !== id));
   };
   const enclosureName = (id) => (enclosures.find((e) => e.id === id) || {}).name || "—";
-  const nextStatus = { pairing: "laying", laying: "complete", complete: "complete" };
-  const statusLabel = { pairing: "กำลังจับคู่", laying: "วางไข่", complete: "เสร็จสิ้น" };
+  const nextStatus = { laying: "complete", complete: "complete" };
+  const statusLabel = { laying: "วางไข่", complete: "เสร็จสิ้น" };
 
   const [editTub, setEditTub] = useState(null);
   const saveEditedTub = (tub) => {
@@ -2639,10 +2685,15 @@ function Breeding({ beetles, setBeetles, pairings, setPairings, tubs, setTubs, e
                 <div className="jod-eyebrow" style={{ marginBottom: 3 }}>กล่องเพาะ</div>
                 <div className="disp pairbox-title">{p.sireId} × {p.damId}</div>
                 {tub && tub.species && <div className="beetle-sub">{tub.species}</div>}
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                  <span className={`status-pill status-${p.status}`}>{statusLabel[p.status]}</span>
-                  {p.status !== "complete" && <button className="btn btn-sm" onClick={() => setStatus(p.id, nextStatus[p.status])}>ทำเครื่องหมายเป็น "{statusLabel[nextStatus[p.status]]}"</button>}
-                </div>
+                {(() => {
+                  const pStatus = p.status === "pairing" ? "laying" : p.status;
+                  return (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                      <span className={`status-pill status-${pStatus}`}>{statusLabel[pStatus]}</span>
+                      {pStatus !== "complete" && <button className="btn btn-sm" onClick={() => setStatus(p.id, nextStatus[pStatus])}>ทำเครื่องหมายเป็น "{statusLabel[nextStatus[pStatus]]}"</button>}
+                    </div>
+                  );
+                })()}
 
                 {tub ? (
                   <>

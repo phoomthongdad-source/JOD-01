@@ -194,8 +194,9 @@
   .beetle-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
   .badge { font-size: 10px; padding: 2px 7px; border-radius: 100px; border: 1px solid var(--border); color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; display: inline-flex; align-items: center; gap: 4px; }
   .badge.gender-male { color: var(--accent-strong); border-color: var(--accent-dim); font-weight: 700; }
-  .badge.activity-status-eating { color: var(--accent-strong); border-color: var(--accent-dim); background: var(--accent-soft); font-weight: 700; }
-  .badge.activity-status-dormant { color: var(--rust); border-color: var(--rust); background: var(--rust-soft); font-weight: 700; }
+  .activity-status-plain { font-size: 11px; font-weight: 600; margin-top: -4px; margin-bottom: 8px; }
+  .activity-status-plain-eating { color: var(--accent-strong); }
+  .activity-status-plain-dormant { color: var(--rust); }
   .badge.gender-female { color: var(--rust); border-color: var(--rust); }
   .beetle-meta { font-size: 11.5px; color: var(--text-dim); display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px; }
   .beetle-actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: nowrap; border-top: 1px solid var(--border-soft); padding-top: 10px; }
@@ -590,11 +591,10 @@ const STAGES = [
   { value: "adult", label: "ตัวเต็มวัย" },
 ];
 const ACTIVITY_STATUS_LABEL = { eating: "กำลังกิน", dormant: "พักตัว" };
-/** Secondary detail shown next to the activity-status badge: the raw date for dormant (when it
- *  went dormant), or a real-time elapsed count for eating (how long it's been eating). */
+/** Secondary detail shown next to the activity status — a real-time elapsed count for both
+ *  statuses (how long it's been dormant, or how long it's been eating), same format either way. */
 function activityStatusDetail(beetle) {
   if (!beetle.activityStatus || !beetle.activityStatusDate) return "";
-  if (beetle.activityStatus === "dormant") return beetle.activityStatusDate;
   return formatElapsed(daysSince(beetle.activityStatusDate));
 }
 const GENDERS = [
@@ -1691,8 +1691,8 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
             <div className="form-field">
               <label>{f.activityStatus === "dormant" ? "วันที่เริ่มพักตัว" : "วันที่เริ่มกิน"}</label>
               <div className="date-field-wrap"><input className="form-input" type="date" value={f.activityStatusDate} onChange={(e) => set("activityStatusDate", e.target.value)} /></div>
-              {f.activityStatus === "eating" && f.activityStatusDate && (
-                <div className="recent-meta" style={{ marginTop: 4 }}>กินมาแล้ว {formatElapsed(daysSince(f.activityStatusDate))}</div>
+              {f.activityStatusDate && (
+                <div className="recent-meta" style={{ marginTop: 4 }}>{f.activityStatus === "dormant" ? "พักตัวมาแล้ว" : "กินมาแล้ว"} {formatElapsed(daysSince(f.activityStatusDate))}</div>
               )}
             </div>
           )}
@@ -2050,7 +2050,6 @@ function BoxCard({ beetle, catalog, onInfo, onEdit, onDelete }) {
           {ACTIVITY_STATUS_LABEL[beetle.activityStatus]}{activityStatusDetail(beetle) ? ` · ${activityStatusDetail(beetle)}` : ""}
         </div>
       )}
-      {beetle.dateReceived && <div className="recent-meta" style={{ marginBottom: 6 }}>รับเข้ามา {formatElapsed(daysSince(beetle.dateReceived))}</div>}
       <div className="box-card-rows">
         {boxLabel && <div className="box-card-row"><BoxIcon size={14} /><span>{boxLabel}</span></div>}
         {substrateLabel && <div className="box-card-row"><SubstrateIcon size={14} /><span>{substrateLabel}</span></div>}
@@ -2108,7 +2107,6 @@ function JarCard({ beetle, catalog, onInfo, onEdit, onDelete }) {
           {ACTIVITY_STATUS_LABEL[beetle.activityStatus]}{activityStatusDetail(beetle) ? ` · ${activityStatusDetail(beetle)}` : ""}
         </div>
       )}
-      {beetle.dateReceived && <div className="recent-meta" style={{ marginBottom: 6 }}>รับเข้ามา {formatElapsed(daysSince(beetle.dateReceived))}</div>}
       <div className="box-card-rows">
         <div className="box-card-row"><BoxIcon size={14} /><span>{jarSizeLabel || "ยังไม่ระบุขนาดกระปุก"}</span></div>
         <div className="box-card-row"><SubstrateIcon size={14} /><span>{beetle.foodType || "ยังไม่ระบุอาหาร/วัสดุปูรอง"}</span></div>
@@ -2232,6 +2230,7 @@ function MyBeetles({ beetles, setBeetles, catalog, setCatalog, theme }) {
                 <span className="specimen-tag"><Tag size={10} />{b.id}</span>
                 <span className="badge">{STAGE_LABEL(b)}</span>
               </div>
+              {(catalog && catalog[b.categoryId] || {}).label && <div className="jod-eyebrow" style={{ marginBottom: 2 }}>{catalog[b.categoryId].label}</div>}
               <div className="beetle-name disp">{b.species || b.customSpeciesName || "ไม่ระบุชนิดพันธุ์"}</div>
               {b.subSpecies && <div className="beetle-sub">{b.subSpecies}</div>}
               <div className="beetle-badges">
@@ -2246,7 +2245,6 @@ function MyBeetles({ beetles, setBeetles, catalog, setCatalog, theme }) {
                 {!!b.sizeMm && <span>ขนาด {b.sizeMm} mm</span>}
                 {!!b.weightGrams && <span>น้ำหนัก {b.weightGrams} g</span>}
                 {!!b.temp && <span><Thermometer size={11} style={{ verticalAlign: -2 }} /> {b.temp}°C</span>}
-                <span>รับเข้า {b.dateReceived} ({formatElapsed(daysSince(b.dateReceived))})</span>
               </div>
               <div className="beetle-actions">
                 <button className="btn btn-sm" onClick={() => setProfile(b)}><FileText size={12} /> ข้อมูล</button>

@@ -590,6 +590,13 @@ const STAGES = [
   { value: "adult", label: "ตัวเต็มวัย" },
 ];
 const ACTIVITY_STATUS_LABEL = { eating: "กำลังกิน", dormant: "พักตัว" };
+/** Secondary detail shown next to the activity-status badge: the raw date for dormant (when it
+ *  went dormant), or a real-time elapsed count for eating (how long it's been eating). */
+function activityStatusDetail(beetle) {
+  if (!beetle.activityStatus || !beetle.activityStatusDate) return "";
+  if (beetle.activityStatus === "dormant") return beetle.activityStatusDate;
+  return formatElapsed(daysSince(beetle.activityStatusDate));
+}
 const GENDERS = [
   { value: "male", label: "ผู้ ♂" },
   { value: "female", label: "เมีย ♀" },
@@ -1668,18 +1675,26 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
               {STAGES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
           </div>
-          <div className="form-field span2">
+          <div className="form-field">
             <label>สถานะ (พักตัว/กิน)</label>
             <select
               className="form-select" value={f.activityStatus} disabled={!taxonomyComplete}
-              onChange={(e) => setF((prev) => ({ ...prev, activityStatus: e.target.value, activityStatusDate: e.target.value ? todayISO() : "" }))}
+              onChange={(e) => setF((prev) => ({ ...prev, activityStatus: e.target.value, activityStatusDate: e.target.value ? (prev.activityStatusDate || todayISO()) : "" }))}
             >
               <option value="">— ไม่ระบุ —</option>
               <option value="eating">กำลังกิน</option>
               <option value="dormant">พักตัว</option>
             </select>
-            {f.activityStatus && f.activityStatusDate && <div className="recent-meta" style={{ marginTop: 4 }}>ตั้งแต่วันที่ {f.activityStatusDate}</div>}
           </div>
+          {f.activityStatus && (
+            <div className="form-field">
+              <label>{f.activityStatus === "dormant" ? "วันที่เริ่มพักตัว" : "วันที่เริ่มกิน"}</label>
+              <div className="date-field-wrap"><input className="form-input" type="date" value={f.activityStatusDate} onChange={(e) => set("activityStatusDate", e.target.value)} /></div>
+              {f.activityStatus === "eating" && f.activityStatusDate && (
+                <div className="recent-meta" style={{ marginTop: 4 }}>กินมาแล้ว {formatElapsed(daysSince(f.activityStatusDate))}</div>
+              )}
+            </div>
+          )}
 
           <div className="form-section-label">3. Lineage — สายเลือด</div>
           <div className="form-field">
@@ -1694,7 +1709,6 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
           <div className="form-section-label">4. Physical Metrics</div>
           <div className="form-field"><label>ขนาดตัวเต็มวัย (mm)</label><input className="form-input" type="number" step="0.1" value={f.sizeMm} onChange={(e) => set("sizeMm", e.target.value)} /></div>
           <div className="form-field"><label>น้ำหนักตัวอ่อน/ดักแด้ (g)</label><input className="form-input" type="number" step="0.1" value={f.weightGrams} onChange={(e) => set("weightGrams", e.target.value)} /></div>
-          <div className="form-field span2"><label>ฟาร์มต้นทาง/ที่มา</label><input className="form-input" value={f.origin} onChange={(e) => set("origin", e.target.value)} /></div>
           <div className="form-field"><label>วันที่ลงทะเบียน</label><div className="date-field-wrap"><input className="form-input" type="date" value={f.dateReceived} onChange={(e) => set("dateReceived", e.target.value)} /></div></div>
           <div className="form-field span2">
             <label>รูปภาพประจำตัว</label>
@@ -1728,65 +1742,9 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
             <div className="form-hint span2">รหัสใหม่จะอ้างอิงสายพันธุ์จากพ่อ/แม่ที่เลือกโดยอัตโนมัติ: <strong className="mono">{previewId}</strong></div>
           )}
 
-          <div className="form-section-label">6. Habitat</div>
-          <div className="form-field"><label>อาหาร/วัสดุปูรอง (ตัวอ่อน)</label><input className="form-input" placeholder="เช่น Premium Mat สูตร L3" value={f.foodType} onChange={(e) => set("foodType", e.target.value)} /></div>
-          <div className="form-field"><label>อุณหภูมิเป้าหมาย (°C)</label><input className="form-input" type="number" step="0.1" value={f.temp} onChange={(e) => set("temp", e.target.value)} /></div>
-
-          {f.stage === "adult" && (
-            <>
-              <div className="form-section-label">7. Housing — กล่องเลี้ยงตัวเต็มวัย</div>
-              <div className="form-field">
-                <label>กล่องเลี้ยง</label>
-                <select className="form-select" value={f.boxType} onChange={(e) => set("boxType", e.target.value)}>
-                  <option value="">—</option>
-                  {BOX_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-              {f.boxType === "ระบุเอง" && (
-                <div className="form-field"><label>ระบุกล่องเลี้ยง</label><input className="form-input" value={f.boxTypeCustom} onChange={(e) => set("boxTypeCustom", e.target.value)} /></div>
-              )}
-              <div className="form-field">
-                <label>วัสดุรองพื้น</label>
-                <select className="form-select" value={f.substrate} onChange={(e) => set("substrate", e.target.value)}>
-                  <option value="">—</option>
-                  {SUBSTRATE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-              {f.substrate === "ระบุเอง" && (
-                <div className="form-field"><label>ระบุวัสดุรองพื้น</label><input className="form-input" value={f.substrateCustom} onChange={(e) => set("substrateCustom", e.target.value)} /></div>
-              )}
-              <div className="form-field">
-                <label>อาหาร</label>
-                <select className="form-select" value={f.foodItem} onChange={(e) => set("foodItem", e.target.value)}>
-                  <option value="">—</option>
-                  {FOOD_ITEMS.map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-              {f.foodItem === "ระบุเอง" && (
-                <div className="form-field"><label>ระบุอาหาร</label><input className="form-input" value={f.foodItemCustom} onChange={(e) => set("foodItemCustom", e.target.value)} /></div>
-              )}
-            </>
-          )}
-
-          {f.stage !== "adult" && (
-            <>
-              <div className="form-section-label">7. Housing — ขนาดกระปุกเลี้ยง</div>
-              <div className="form-field">
-                <label>ขนาดกระปุก</label>
-                <select className="form-select" value={f.jarSize} onChange={(e) => set("jarSize", e.target.value)}>
-                  <option value="">—</option>
-                  {JAR_SIZES.map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-              {f.jarSize === "ระบุเอง" && (
-                <div className="form-field"><label>ระบุขนาดกระปุก</label><input className="form-input" placeholder="เช่น 650 ML" value={f.jarSizeCustom} onChange={(e) => set("jarSizeCustom", e.target.value)} /></div>
-              )}
-            </>
-          )}
-
           {["l1", "l2", "l3", "pupa"].includes(f.stage) && (
             <>
-              <div className="form-section-label">8. Growth Tracking — บันทึกการเปลี่ยนแมท</div>
+              <div className="form-section-label">6. Growth Tracking — บันทึกการเปลี่ยนแมท</div>
               <div className="form-field span2">
                 <GrowthChart entries={matChanges} />
               </div>
@@ -2070,10 +2028,11 @@ function Box3D({ beetle }) {
   );
 }
 
-function BoxCard({ beetle, onInfo, onEdit, onDelete }) {
+function BoxCard({ beetle, catalog, onInfo, onEdit, onDelete }) {
   const boxLabel = beetle.boxType === "ระบุเอง" ? (beetle.boxTypeCustom || "ระบุเอง") : beetle.boxType;
   const substrateLabel = beetle.substrate === "ระบุเอง" ? (beetle.substrateCustom || "ระบุเอง") : beetle.substrate;
   const foodLabel = beetle.foodItem === "ระบุเอง" ? (beetle.foodItemCustom || "ระบุเอง") : beetle.foodItem;
+  const categoryLabel = (catalog && catalog[beetle.categoryId] || {}).label;
   return (
     <div className="box-card">
       <div className="box-card-lid">
@@ -2083,8 +2042,14 @@ function BoxCard({ beetle, onInfo, onEdit, onDelete }) {
         </span>
       </div>
       <Box3D beetle={beetle} />
+      {categoryLabel && <div className="jod-eyebrow" style={{ marginBottom: 2 }}>{categoryLabel}</div>}
       <div className="beetle-name disp">{beetle.species || beetle.customSpeciesName || "ไม่ระบุชนิดพันธุ์"}</div>
-      {beetle.activityStatus && <span className={`badge activity-status-${beetle.activityStatus}`} style={{ marginBottom: 6, display: "inline-block" }}>{ACTIVITY_STATUS_LABEL[beetle.activityStatus]}</span>}
+      {beetle.activityStatus && (
+        <div style={{ marginBottom: 6 }}>
+          <span className={`badge activity-status-${beetle.activityStatus}`}>{ACTIVITY_STATUS_LABEL[beetle.activityStatus]}</span>
+          {activityStatusDetail(beetle) && <span className="recent-meta" style={{ marginLeft: 6 }}>{activityStatusDetail(beetle)}</span>}
+        </div>
+      )}
       {beetle.dateReceived && <div className="recent-meta" style={{ marginBottom: 6 }}>รับเข้ามา {formatElapsed(daysSince(beetle.dateReceived))}</div>}
       <div className="box-card-rows">
         <div className="box-card-row"><BoxIcon size={14} /><span>{boxLabel || "ยังไม่ระบุกล่องเลี้ยง"}</span></div>
@@ -2126,8 +2091,9 @@ function JarSection({ beetle }) {
   );
 }
 
-function JarCard({ beetle, onInfo, onEdit, onDelete }) {
+function JarCard({ beetle, catalog, onInfo, onEdit, onDelete }) {
   const jarSizeLabel = beetle.jarSize === "ระบุเอง" ? (beetle.jarSizeCustom || "ระบุเอง") : beetle.jarSize;
+  const categoryLabel = (catalog && catalog[beetle.categoryId] || {}).label;
   return (
     <div className="box-card">
       <div className="box-card-lid">
@@ -2135,8 +2101,14 @@ function JarCard({ beetle, onInfo, onEdit, onDelete }) {
         <span className="badge">{STAGE_LABEL(beetle)}</span>
       </div>
       <JarSection beetle={beetle} />
+      {categoryLabel && <div className="jod-eyebrow" style={{ marginBottom: 2 }}>{categoryLabel}</div>}
       <div className="beetle-name disp">{beetle.species || beetle.customSpeciesName || "ไม่ระบุชนิดพันธุ์"}</div>
-      {beetle.activityStatus && <span className={`badge activity-status-${beetle.activityStatus}`} style={{ marginBottom: 6, display: "inline-block" }}>{ACTIVITY_STATUS_LABEL[beetle.activityStatus]}</span>}
+      {beetle.activityStatus && (
+        <div style={{ marginBottom: 6 }}>
+          <span className={`badge activity-status-${beetle.activityStatus}`}>{ACTIVITY_STATUS_LABEL[beetle.activityStatus]}</span>
+          {activityStatusDetail(beetle) && <span className="recent-meta" style={{ marginLeft: 6 }}>{activityStatusDetail(beetle)}</span>}
+        </div>
+      )}
       {beetle.dateReceived && <div className="recent-meta" style={{ marginBottom: 6 }}>รับเข้ามา {formatElapsed(daysSince(beetle.dateReceived))}</div>}
       <div className="box-card-rows">
         <div className="box-card-row"><BoxIcon size={14} /><span>{jarSizeLabel || "ยังไม่ระบุขนาดกระปุก"}</span></div>
@@ -2244,8 +2216,8 @@ function MyBeetles({ beetles, setBeetles, catalog, setCatalog, theme }) {
           <div className="beetle-grid">
             {filtered.map((b) => (
               b.stage === "adult"
-                ? <BoxCard key={b.id} beetle={b} onInfo={() => setProfile(b)} onEdit={() => setModal(b)} onDelete={() => remove(b.id)} />
-                : <JarCard key={b.id} beetle={b} onInfo={() => setProfile(b)} onEdit={() => setModal(b)} onDelete={() => remove(b.id)} />
+                ? <BoxCard key={b.id} beetle={b} catalog={catalog} onInfo={() => setProfile(b)} onEdit={() => setModal(b)} onDelete={() => remove(b.id)} />
+                : <JarCard key={b.id} beetle={b} catalog={catalog} onInfo={() => setProfile(b)} onEdit={() => setModal(b)} onDelete={() => remove(b.id)} />
             ))}
           </div>
         )
@@ -2265,7 +2237,7 @@ function MyBeetles({ beetles, setBeetles, catalog, setCatalog, theme }) {
               {b.subSpecies && <div className="beetle-sub">{b.subSpecies}</div>}
               <div className="beetle-badges">
                 <span className={`badge ${b.gender === "male" ? "gender-male" : b.gender === "female" ? "gender-female" : ""}`}>{(GENDERS.find((g) => g.value === b.gender) || {}).label}</span>
-                {b.activityStatus && <span className={`badge activity-status-${b.activityStatus}`}>{ACTIVITY_STATUS_LABEL[b.activityStatus]}</span>}
+                {b.activityStatus && <span className={`badge activity-status-${b.activityStatus}`}>{ACTIVITY_STATUS_LABEL[b.activityStatus]}{activityStatusDetail(b) ? ` · ${activityStatusDetail(b)}` : ""}</span>}
                 {b.locality && <span className="badge">{b.locality}</span>}
                 {b.line && <span className="badge">{b.line}</span>}
               </div>

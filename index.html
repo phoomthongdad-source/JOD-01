@@ -237,6 +237,7 @@
   .beetle-card-image { width: 100%; height: 110px; object-fit: cover; border-radius: 8px; margin-bottom: 8px; display: block; }
   .beetle-card-image-placeholder { background: var(--panel-2); border: 1px dashed var(--border-soft); display: flex; align-items: center; justify-content: center; color: var(--text-faint); }
   .view-switch { display: flex; gap: 4px; background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: 8px; padding: 3px; }
+  .box-group-tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
   .view-switch .btn { border: none; background: transparent; }
   .view-switch .btn.btn-active { background: var(--accent-soft); border: 1px solid var(--accent-dim); }
   .box-card { background: var(--panel); border: 1px solid var(--border-soft); border-radius: 12px; padding: 0 14px 14px; overflow: hidden; }
@@ -724,7 +725,7 @@ const emptyBeetle = () => ({
   dateReceived: todayISO(), imageUrl: "", sire: "", dam: "", temp: "", foodType: "", notes: "",
   boxType: "", boxTypeCustom: "", substrate: "", substrateCustom: "", foodItem: "", foodItemCustom: "",
   jarSize: "", jarSizeCustom: "", matChanges: [], activityStatus: "", activityStatusDate: "",
-  dormantEndDate: "", lastDormancyDays: "", deceasedDate: "",
+  dormantEndDate: "", lastDormancyDays: "", deceasedDate: "", pupaExitPhotoUrl: "",
 });
 
 const emptyTub = () => ({
@@ -1309,7 +1310,7 @@ function Sidebar({ tab, setTab, counts, theme, googleUser, onSignOut }) {
 
 /* -------------------------------- Dashboard -------------------------------- */
 
-function Dashboard({ beetles, pairings, enclosures, tubs, setTab, theme }) {
+function Dashboard({ beetles, pairings, enclosures, tubs, catalog, setTab, theme }) {
   const total = beetles.length;
   const byStage = useMemo(() => {
     const m = { egg: 0, l1: 0, l2: 0, l3: 0, pupa: 0, adult: 0 };
@@ -1322,11 +1323,11 @@ function Dashboard({ beetles, pairings, enclosures, tubs, setTab, theme }) {
   const speciesData = useMemo(() => {
     const m = {};
     beetles.forEach((b) => {
-      const key = b.speciesCode || b.customSpeciesName || "อื่นๆ";
+      const key = (catalog && catalog[b.categoryId] && catalog[b.categoryId].label) || "ไม่ระบุหมวดหมู่";
       m[key] = (m[key] || 0) + 1;
     });
     return Object.entries(m).map(([name, value]) => ({ name, value }));
-  }, [beetles]);
+  }, [beetles, catalog]);
 
   const stageData = STAGES.map((s) => ({ name: s.label.replace(/\s*\(.+\)/, ""), value: byStage[s.value] || 0 }));
   const shades = theme === "dark"
@@ -1353,7 +1354,7 @@ function Dashboard({ beetles, pairings, enclosures, tubs, setTab, theme }) {
 
       <div className="charts-row">
         <div className="card">
-          <div className="panel-title"><span className="tag-dot" />สัดส่วนตามชนิดพันธุ์</div>
+          <div className="panel-title"><span className="tag-dot" />สัดส่วนตามหมวดหมู่หลัก</div>
           {speciesData.length === 0 ? (
             <div className="empty-state" style={{ padding: 20 }}>ยังไม่มีข้อมูล</div>
           ) : (
@@ -1572,18 +1573,52 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
   };
 
   // Growth tracking (L1-L3/pupa): a log of mat-change events (date + weight), used to draw a
-  // simple growth-trend chart referencing weight gained/lost between changes.
+  // Growth tracking (L1-L3/pupa): a log of mat-change events (date + weight + stage + optional
+  // photo), used to draw a simple growth-trend chart referencing weight gained/lost between
+  // changes, and to let the stage itself be adjusted right from this log as the larva develops.
   const [newMatDate, setNewMatDate] = useState(todayISO());
   const [newMatWeight, setNewMatWeight] = useState("");
+  const [newMatStage, setNewMatStage] = useState(f.stage);
+  const [newMatPhoto, setNewMatPhoto] = useState("");
+  const matPhotoInputRef = useRef(null);
   const matChanges = f.matChanges || [];
+  const handleMatPhotoChange = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try {
+      const dataUrl = await resizeImageFile(file);
+      setNewMatPhoto(dataUrl);
+    } catch (err) {
+      console.error("mat-change photo resize failed", err);
+      alert("ไม่สามารถโหลดรูปภาพนี้ได้ ลองใช้ไฟล์รูปภาพอื่น");
+    }
+    e.target.value = "";
+  };
   const addMatChange = () => {
     const w = newMatWeight.trim();
     if (!newMatDate || w === "") return;
-    const entry = { id: uid("MAT"), date: newMatDate, weight: Number(w) };
-    setF((prev) => ({ ...prev, matChanges: [...(prev.matChanges || []), entry].sort((a, b) => a.date.localeCompare(b.date)) }));
-    setNewMatWeight("");
+    const entry = { id: uid("MAT"), date: newMatDate, weight: Number(w), stage: newMatStage, photoUrl: newMatPhoto };
+    setF((prev) => ({
+      ...prev,
+      matChanges: [...(prev.matChanges || []), entry].sort((a, b) => a.date.localeCompare(b.date)),
+      stage: newMatStage || prev.stage,
+    }));
+    setNewMatWeight(""); setNewMatPhoto("");
   };
   const removeMatChange = (id) => setF((prev) => ({ ...prev, matChanges: (prev.matChanges || []).filter((m) => m.id !== id) }));
+
+  const handleCaliperPhotoChange = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try {
+      const dataUrl = await resizeImageFile(file);
+      set("pupaExitPhotoUrl", dataUrl);
+    } catch (err) {
+      console.error("caliper photo resize failed", err);
+      alert("ไม่สามารถโหลดรูปภาพนี้ได้ ลองใช้ไฟล์รูปภาพอื่น");
+    }
+    e.target.value = "";
+  };
 
   const potentialSires = beetles.filter((b) => (b.gender === "male" || b.gender === "pair") && b.stage === "adult" && b.id !== f.id);
   const potentialDams = beetles.filter((b) => (b.gender === "female" || b.gender === "pair") && b.stage === "adult" && b.id !== f.id);
@@ -2174,6 +2209,8 @@ function JarCard({ beetle, catalog, onInfo, onEdit, onDelete }) {
 function MyBeetles({ beetles, setBeetles, catalog, setCatalog, theme }) {
   const [query, setQuery] = useState("");
   const [stageFilter, setStageFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [boxGroup, setBoxGroup] = useState("adult"); // adult | larva — box view only, per-stage grouping
   const [viewMode, setViewMode] = useState("box"); // list | box
   const [modal, setModal] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -2185,8 +2222,10 @@ function MyBeetles({ beetles, setBeetles, catalog, setCatalog, theme }) {
   const filtered = beetles.filter((b) => {
     const matchesQuery = !query || `${b.id} ${b.species} ${b.subSpecies}`.toLowerCase().includes(query.toLowerCase());
     const matchesStage = stageFilter === "all" || b.stage === stageFilter;
-    return matchesQuery && matchesStage;
+    const matchesCategory = categoryFilter === "all" || b.categoryId === categoryFilter;
+    return matchesQuery && matchesStage && matchesCategory;
   });
+  const boxViewFiltered = filtered.filter((b) => (boxGroup === "adult" ? b.stage === "adult" : b.stage !== "adult"));
 
   const save = (beetle) => {
     setBeetles((prev) => {
@@ -2249,18 +2288,29 @@ function MyBeetles({ beetles, setBeetles, catalog, setCatalog, theme }) {
           <option value="all">ทุกระยะ</option>
           {STAGES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
+        <select className="filter-select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+          <option value="all">ทุกหมวดหมู่</option>
+          {Object.entries(catalog).filter(([id]) => id !== "other").map(([id, c]) => <option key={id} value={id}>{c.label}</option>)}
+        </select>
         <div className="view-switch">
           <button className={`btn btn-sm ${viewMode === "box" ? "btn-active" : ""}`} onClick={() => setViewMode("box")}><BoxIcon size={13} /> กล่องเลี้ยง</button>
           <button className={`btn btn-sm ${viewMode === "list" ? "btn-active" : ""}`} onClick={() => setViewMode("list")}><GridIcon size={13} /> รายการ</button>
         </div>
       </div>
 
+      {viewMode === "box" && (
+        <div className="box-group-tabs">
+          <button className={`btn btn-sm ${boxGroup === "adult" ? "btn-active" : ""}`} onClick={() => setBoxGroup("adult")}>ตัวเต็มวัย ({filtered.filter((b) => b.stage === "adult").length})</button>
+          <button className={`btn btn-sm ${boxGroup === "larva" ? "btn-active" : ""}`} onClick={() => setBoxGroup("larva")}>ตัวอ่อน — ไข่/ตัวอ่อน/ดักแด้ ({filtered.filter((b) => b.stage !== "adult").length})</button>
+        </div>
+      )}
+
       {viewMode === "box" ? (
-        filtered.length === 0 ? (
+        boxViewFiltered.length === 0 ? (
           <div className="empty-state"><BoxIcon size={30} /><div>ไม่มีด้วงที่ตรงกับเงื่อนไข</div></div>
         ) : (
           <div className="beetle-grid">
-            {filtered.map((b) => (
+            {boxViewFiltered.map((b) => (
               b.stage === "adult"
                 ? <BoxCard key={b.id} beetle={b} catalog={catalog} onInfo={() => setProfile(b)} onEdit={() => setModal(b)} onDelete={() => remove(b.id)} />
                 : <JarCard key={b.id} beetle={b} catalog={catalog} onInfo={() => setProfile(b)} onEdit={() => setModal(b)} onDelete={() => remove(b.id)} />
@@ -2937,7 +2987,7 @@ function App() {
         googleUser={googleUser} onSignOut={handleSignOut}
       />
       <div className="jod-main">
-        {tab === "dashboard" && <Dashboard beetles={beetles} pairings={pairings} enclosures={enclosures} tubs={tubs} setTab={setTab} theme={theme} />}
+        {tab === "dashboard" && <Dashboard beetles={beetles} pairings={pairings} enclosures={enclosures} tubs={tubs} catalog={catalog} setTab={setTab} theme={theme} />}
         {tab === "beetles" && <MyBeetles beetles={beetles} setBeetles={setBeetles} catalog={catalog} setCatalog={setCatalog} theme={theme} />}
         {tab === "breeding" && <Breeding beetles={beetles} setBeetles={setBeetles} pairings={pairings} setPairings={setPairings} tubs={tubs} setTubs={setTubs} enclosures={enclosures} catalog={catalog} />}
         {tab === "settings" && <Settings enclosures={enclosures} setEnclosures={setEnclosures} />}

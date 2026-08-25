@@ -1107,7 +1107,7 @@ function drawLabelToCanvas(beetle, size, theme = "dark") {
         ["ระยะ", STAGE_LABEL(beetle)],
         ["ขนาด", beetle.sizeMm ? `${beetle.sizeMm} mm` : "-"],
         ["น้ำหนัก", beetle.weightGrams ? `${beetle.weightGrams} g` : "-"],
-        ["แหล่งกำเนิด", beetle.locality || "-"],
+        ["แหล่งที่มา", beetle.locality || "-"],
         ["ไลน์", beetle.line || "-"],
         ["พ่อพันธุ์", beetle.sire || "-"],
         ["แม่พันธุ์", beetle.dam || "-"],
@@ -1816,8 +1816,28 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, sourceCatalog, setS
 
           <div className="form-section-label">3. Lineage — สายเลือด</div>
           <div className="form-field">
-            <label>แหล่งกำเนิด</label>
-            <input className="form-input" placeholder="พิมพ์แหล่งกำเนิด เช่น Guadeloupe, Sumatra" value={f.locality} onChange={(e) => set("locality", e.target.value)} />
+            <label>แหล่งที่มา</label>
+            <div style={{ display: "flex", gap: 6 }}>
+              <select className="form-select" value={f.locality} onChange={(e) => set("locality", e.target.value)}>
+                <option value="">— ไม่ระบุ —</option>
+                {(sourceCatalog || []).map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
+              </select>
+              {currentSourceEntry && <button type="button" className="btn btn-sm" title="แก้ไขแหล่งที่มา" onClick={startEditSource}><Pencil size={12} /></button>}
+              {currentSourceEntry && <button type="button" className="btn btn-sm btn-danger" title="ลบแหล่งที่มา" onClick={removeSource}><Trash2 size={12} /></button>}
+              <button type="button" className="btn btn-sm" title="เพิ่มแหล่งที่มาใหม่" onClick={() => setShowAddSource((v) => !v)}><Plus size={12} /></button>
+            </div>
+            {editingSource && (
+              <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                <input className="form-input" placeholder="ชื่อแหล่งที่มา" value={sourceNameDraft} onChange={(e) => setSourceNameDraft(e.target.value)} />
+                <button type="button" className="btn btn-sm btn-primary" onClick={saveEditSource} disabled={!sourceNameDraft.trim()}>บันทึก</button>
+              </div>
+            )}
+            {showAddSource && (
+              <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                <input className="form-input" placeholder="เช่น Guadeloupe, Sumatra" value={newSourceName} onChange={(e) => setNewSourceName(e.target.value)} />
+                <button type="button" className="btn btn-sm btn-primary" onClick={quickAddSource} disabled={!newSourceName.trim()}>เพิ่ม</button>
+              </div>
+            )}
           </div>
           <div className="form-field">
             <label>สายเลือด/ไลน์ผสม</label>
@@ -1962,7 +1982,7 @@ function SheetCardBody({ beetle }) {
         <div className="sheet-row"><span className="k">ระยะ</span><span className="v">{STAGE_LABEL(beetle)}</span></div>
         <div className="sheet-row"><span className="k">ขนาด</span><span className="v">{beetle.sizeMm ? `${beetle.sizeMm} mm` : "-"}</span></div>
         <div className="sheet-row"><span className="k">น้ำหนัก</span><span className="v">{beetle.weightGrams ? `${beetle.weightGrams} g` : "-"}</span></div>
-        <div className="sheet-row"><span className="k">แหล่งกำเนิด</span><span className="v">{beetle.locality || "-"}</span></div>
+        <div className="sheet-row"><span className="k">แหล่งที่มา</span><span className="v">{beetle.locality || "-"}</span></div>
         <div className="sheet-row"><span className="k">ไลน์</span><span className="v">{beetle.line || "-"}</span></div>
         <div className="sheet-row"><span className="k">พ่อพันธุ์</span><span className="v">{beetle.sire || "-"}</span></div>
         <div className="sheet-row"><span className="k">แม่พันธุ์</span><span className="v">{beetle.dam || "-"}</span></div>

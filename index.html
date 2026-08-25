@@ -229,7 +229,8 @@
   .growth-chart-meta { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-faint); margin-top: 4px; gap: 6px; }
   .mat-change-list { display: flex; flex-direction: column; gap: 5px; max-height: 140px; overflow-y: auto; }
   .mat-change-row { display: flex; align-items: center; gap: 10px; background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: 7px; padding: 6px 9px; font-size: 11.5px; }
-  .mat-change-row span:first-child { flex: 1; color: var(--text-dim); }
+  .mat-change-thumb { width: 32px; height: 32px; object-fit: cover; border-radius: 5px; flex-shrink: 0; }
+  .mat-change-row span:first-of-type { flex: 1; color: var(--text-dim); }
   .image-picker { border: 1.5px dashed var(--border); border-radius: 10px; height: 150px; display: flex; align-items: center; justify-content: center; cursor: pointer; background: var(--panel-2); overflow: hidden; transition: border-color .15s; position: relative; }
   .image-picker:hover { border-color: var(--accent-dim); }
   .image-picker-preview { width: 100%; height: 100%; object-fit: cover; }
@@ -1449,7 +1450,7 @@ function GrowthChart({ entries }) {
 }
 
 
-function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) {
+function BeetleForm({ initial, beetles, catalog, setCatalog, sourceCatalog, setSourceCatalog, onSave, onClose }) {
   const [f, setF] = useState(initial);
   const [autoId, setAutoId] = useState(false);
   const fileInputRef = useRef(null);
@@ -1549,6 +1550,36 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
     setF((prev) => ({ ...prev, speciesCode: "" }));
   };
 
+  // แหล่งที่มา (source) — a reusable, editable list saved across records, same +/-/edit pattern
+  // as the category/species catalog above.
+  const [showAddSource, setShowAddSource] = useState(false);
+  const [newSourceName, setNewSourceName] = useState("");
+  const [editingSource, setEditingSource] = useState(false);
+  const [sourceNameDraft, setSourceNameDraft] = useState("");
+  const currentSourceEntry = (sourceCatalog || []).find((s) => s.name === f.locality);
+  const quickAddSource = () => {
+    const name = newSourceName.trim();
+    if (!name) return;
+    setSourceCatalog((prev) => [...(prev || []), { id: uid("SRC"), name }]);
+    set("locality", name);
+    setNewSourceName(""); setShowAddSource(false);
+  };
+  const startEditSource = () => { if (currentSourceEntry) { setSourceNameDraft(currentSourceEntry.name); setEditingSource(true); } };
+  const saveEditSource = () => {
+    const name = sourceNameDraft.trim();
+    if (name && currentSourceEntry) {
+      setSourceCatalog((prev) => (prev || []).map((s) => (s.id === currentSourceEntry.id ? { ...s, name } : s)));
+      set("locality", name);
+    }
+    setEditingSource(false);
+  };
+  const removeSource = () => {
+    if (!currentSourceEntry) return;
+    if (!window.confirm(`ลบแหล่งที่มา "${currentSourceEntry.name}"?`)) return;
+    setSourceCatalog((prev) => (prev || []).filter((s) => s.id !== currentSourceEntry.id));
+    set("locality", "");
+  };
+
   // Switching status: leaving "dormant" for "eating" auto-captures how many days the dormancy
   // period lasted (start → end date, or start → today if still ongoing) as a breeding-timing
   // reference point, per the requested workflow.
@@ -1579,8 +1610,10 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
   const [newMatDate, setNewMatDate] = useState(todayISO());
   const [newMatWeight, setNewMatWeight] = useState("");
   const [newMatStage, setNewMatStage] = useState(f.stage);
+  const [newMatJarSize, setNewMatJarSize] = useState("");
   const [newMatPhoto, setNewMatPhoto] = useState("");
   const matPhotoInputRef = useRef(null);
+  const caliperPhotoInputRef = useRef(null);
   const matChanges = f.matChanges || [];
   const handleMatPhotoChange = async (e) => {
     const file = e.target.files && e.target.files[0];
@@ -1597,13 +1630,13 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
   const addMatChange = () => {
     const w = newMatWeight.trim();
     if (!newMatDate || w === "") return;
-    const entry = { id: uid("MAT"), date: newMatDate, weight: Number(w), stage: newMatStage, photoUrl: newMatPhoto };
+    const entry = { id: uid("MAT"), date: newMatDate, weight: Number(w), stage: newMatStage, photoUrl: newMatPhoto, jarSizeL: newMatJarSize.trim() };
     setF((prev) => ({
       ...prev,
       matChanges: [...(prev.matChanges || []), entry].sort((a, b) => a.date.localeCompare(b.date)),
       stage: newMatStage || prev.stage,
     }));
-    setNewMatWeight(""); setNewMatPhoto("");
+    setNewMatWeight(""); setNewMatPhoto(""); setNewMatJarSize("");
   };
   const removeMatChange = (id) => setF((prev) => ({ ...prev, matChanges: (prev.matChanges || []).filter((m) => m.id !== id) }));
 
@@ -1838,8 +1871,11 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
                   <div className="mat-change-list">
                     {matChanges.map((m) => (
                       <div className="mat-change-row" key={m.id}>
+                        {m.photoUrl && <img src={m.photoUrl} alt="" className="mat-change-thumb" />}
                         <span className="mono">{m.date}</span>
                         <span className="mono">{m.weight} g</span>
+                        {m.jarSizeL && <span className="mono">{m.jarSizeL} L</span>}
+                        {m.stage && <span className="badge">{(STAGES.find((s) => s.value === m.stage) || {}).label}</span>}
                         <button type="button" className="btn btn-sm btn-danger" onClick={() => removeMatChange(m.id)}><Trash2 size={11} /></button>
                       </div>
                     ))}
@@ -1848,10 +1884,44 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, onSave, onClose }) 
               )}
               <div className="form-field"><label>วันที่เปลี่ยนแมท</label><div className="date-field-wrap"><input className="form-input" type="date" value={newMatDate} onChange={(e) => setNewMatDate(e.target.value)} /></div></div>
               <div className="form-field"><label>น้ำหนัก (g)</label><input className="form-input" type="number" step="0.01" placeholder="เช่น 12.5" value={newMatWeight} onChange={(e) => setNewMatWeight(e.target.value)} /></div>
+              <div className="form-field">
+                <label>ขนาดกระปุกเลี้ยง (L)</label>
+                <input className="form-input" type="number" step="0.1" min="0" placeholder="เช่น 0.5" value={newMatJarSize} onChange={(e) => setNewMatJarSize(e.target.value)} />
+              </div>
+              <div className="form-field">
+                <label>ระยะ ณ วันนี้ (ปรับได้)</label>
+                <select className="form-select" value={newMatStage} onChange={(e) => setNewMatStage(e.target.value)}>
+                  {STAGES.filter((s) => ["egg", "l1", "l2", "l3", "pupa"].includes(s.value)).map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                </select>
+              </div>
+              <div className="form-field span2">
+                <label>รูปถ่ายประกอบ (ถ่าย/อัปโหลด)</label>
+                <input type="file" accept="image/*" capture="environment" ref={matPhotoInputRef} style={{ display: "none" }} onChange={handleMatPhotoChange} />
+                <button type="button" className="btn btn-sm" onClick={() => matPhotoInputRef.current && matPhotoInputRef.current.click()}>
+                  <ImagePlusIcon size={12} /> {newMatPhoto ? "เปลี่ยนรูป" : "ถ่ายรูป/อัปโหลด"}
+                </button>
+                {newMatPhoto && <img src={newMatPhoto} alt="" className="mat-change-thumb" style={{ marginLeft: 8, verticalAlign: "middle" }} />}
+              </div>
               <div className="form-field span2">
                 <button type="button" className="btn btn-sm" onClick={addMatChange} disabled={!newMatDate || newMatWeight.trim() === ""}><Plus size={12} /> เพิ่มบันทึกการเปลี่ยนแมท</button>
               </div>
             </>
+          )}
+
+          {f.stage === "adult" && (
+            <div className="form-field span2">
+              <label>รูปวัดขนาดพร้อมเวอร์เนีย (ตอนออกจากดักแด้)</label>
+              <input type="file" accept="image/*" capture="environment" ref={caliperPhotoInputRef} style={{ display: "none" }} onChange={handleCaliperPhotoChange} />
+              {f.pupaExitPhotoUrl ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <img src={f.pupaExitPhotoUrl} alt="" className="mat-change-thumb" style={{ width: 60, height: 60 }} />
+                  <button type="button" className="btn btn-sm" onClick={() => caliperPhotoInputRef.current && caliperPhotoInputRef.current.click()}><ImagePlusIcon size={12} /> เปลี่ยนรูป</button>
+                  <button type="button" className="btn btn-sm btn-danger" onClick={() => set("pupaExitPhotoUrl", "")}><Trash2 size={12} /> ลบ</button>
+                </div>
+              ) : (
+                <button type="button" className="btn btn-sm" onClick={() => caliperPhotoInputRef.current && caliperPhotoInputRef.current.click()}><ImagePlusIcon size={12} /> ถ่ายรูป/อัปโหลด</button>
+              )}
+            </div>
           )}
 
           <div className="form-field span2"><label>บันทึกเพิ่มเติม</label><textarea className="form-input" rows={2} value={f.notes} onChange={(e) => set("notes", e.target.value)} /></div>
@@ -2206,7 +2276,7 @@ function JarCard({ beetle, catalog, onInfo, onEdit, onDelete }) {
   );
 }
 
-function MyBeetles({ beetles, setBeetles, catalog, setCatalog, theme }) {
+function MyBeetles({ beetles, setBeetles, catalog, setCatalog, sourceCatalog, setSourceCatalog, theme }) {
   const [query, setQuery] = useState("");
   const [stageFilter, setStageFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -2359,7 +2429,7 @@ function MyBeetles({ beetles, setBeetles, catalog, setCatalog, theme }) {
         </div>
       )}
 
-      {modal && <BeetleForm initial={modal === "new" ? emptyBeetle() : { ...emptyBeetle(), ...modal }} beetles={beetles} catalog={catalog} setCatalog={setCatalog} onSave={save} onClose={() => setModal(null)} />}
+      {modal && <BeetleForm initial={modal === "new" ? emptyBeetle() : { ...emptyBeetle(), ...modal }} beetles={beetles} catalog={catalog} setCatalog={setCatalog} sourceCatalog={sourceCatalog} setSourceCatalog={setSourceCatalog} onSave={save} onClose={() => setModal(null)} />}
       {profile && <BeetleProfileModal beetle={profile} theme={theme} onClose={() => setProfile(null)} />}
       {showBulk && <BulkLabelModal beetles={selectedBeetles} theme={theme} onClose={() => setShowBulk(false)} />}
       {showScanner && (
@@ -2871,6 +2941,7 @@ function App() {
   const [enclosures, setEnclosures] = useState(null);
   const [tubs, setTubs] = useState(null);
   const [catalog, setCatalog] = useState(null);
+  const [sourceCatalog, setSourceCatalog] = useState(null);
   const theme = "dark"; // dark mode only
   const [googleUser, setGoogleUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
@@ -2912,13 +2983,14 @@ function App() {
   useEffect(() => {
     if (!authReady) return;
     let cancelled = false;
-    setBeetles(null); setPairings(null); setEnclosures(null); setTubs(null); setCatalog(null);
+    setBeetles(null); setPairings(null); setEnclosures(null); setTubs(null); setCatalog(null); setSourceCatalog(null);
     (async () => {
       let rawBeetles = await loadData(googleUser, "beetles", []);
       const rawPairings = await loadData(googleUser, "pairings", []);
       let rawEnclosures = await loadData(googleUser, "enclosures", []);
       let rawTubs = await loadData(googleUser, "tubs", []);
       const rawCatalog = await loadData(googleUser, "catalog", defaultCatalog());
+      const rawSourceCatalog = await loadData(googleUser, "sourceCatalog", []);
 
       // One-time cleanup: earlier versions of this app pre-filled new accounts with sample data.
       // Strip out any record that still exactly matches one of those old sample IDs/names, no matter
@@ -2942,6 +3014,7 @@ function App() {
       setEnclosures(rawEnclosures);
       setTubs(rawTubs.map(normalizeTub));
       setCatalog(rawCatalog && rawCatalog.other ? rawCatalog : { ...rawCatalog, other: { label: "หมวดหมู่อื่นๆ / กำหนดเอง", species: [] } });
+      setSourceCatalog(rawSourceCatalog);
     })();
     return () => { cancelled = true; };
   }, [authReady, accountKey]);
@@ -2951,6 +3024,7 @@ function App() {
   useEffect(() => { if (enclosures) saveData(googleUser, "enclosures", enclosures); }, [enclosures]);
   useEffect(() => { if (tubs) saveData(googleUser, "tubs", tubs); }, [tubs]);
   useEffect(() => { if (catalog) saveData(googleUser, "catalog", catalog); }, [catalog]);
+  useEffect(() => { if (sourceCatalog) saveData(googleUser, "sourceCatalog", sourceCatalog); }, [sourceCatalog]);
 
   const handleSignOut = () => {
     setGoogleUser(null);
@@ -2975,7 +3049,7 @@ function App() {
     return <LoginGate theme={theme} onContinueAsGuest={handleContinueAsGuest} />;
   }
 
-  if (!beetles || !pairings || !enclosures || !tubs || !catalog) {
+  if (!beetles || !pairings || !enclosures || !tubs || !catalog || !sourceCatalog) {
     return <div className={`jod theme-${theme}`} style={{ alignItems: "center", justifyContent: "center" }}><div className="mono" style={{ color: "var(--text-faint)" }}>กำลังโหลดข้อมูล…</div></div>;
   }
 
@@ -2988,7 +3062,7 @@ function App() {
       />
       <div className="jod-main">
         {tab === "dashboard" && <Dashboard beetles={beetles} pairings={pairings} enclosures={enclosures} tubs={tubs} catalog={catalog} setTab={setTab} theme={theme} />}
-        {tab === "beetles" && <MyBeetles beetles={beetles} setBeetles={setBeetles} catalog={catalog} setCatalog={setCatalog} theme={theme} />}
+        {tab === "beetles" && <MyBeetles beetles={beetles} setBeetles={setBeetles} catalog={catalog} setCatalog={setCatalog} sourceCatalog={sourceCatalog} setSourceCatalog={setSourceCatalog} theme={theme} />}
         {tab === "breeding" && <Breeding beetles={beetles} setBeetles={setBeetles} pairings={pairings} setPairings={setPairings} tubs={tubs} setTubs={setTubs} enclosures={enclosures} catalog={catalog} />}
         {tab === "settings" && <Settings enclosures={enclosures} setEnclosures={setEnclosures} />}
       </div>

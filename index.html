@@ -2726,7 +2726,7 @@ function TubForm({ initial, pairings, enclosures, beetles, onSave, onClose }) {
 
 /* -------------------------------- Breeding ---------------------------------- */
 
-function Breeding({ beetles, setBeetles, pairings, setPairings, tubs, setTubs, enclosures, catalog, matFormulas, mushroomTypes }) {
+function Breeding({ beetles, setBeetles, pairings, setPairings, tubs, setTubs, enclosures, catalog, matFormulas }) {
   const [form, setForm] = useState({
     sireId: "", damId: "", dateStarted: todayISO(), notes: "",
     enclosureId: "", substrateType: "", useRottenWood: false, rottenWoodCount: "", compaction: 70, boxSizeL: "",
@@ -2874,29 +2874,22 @@ function Breeding({ beetles, setBeetles, pairings, setPairings, tubs, setTubs, e
                 </select>
               </div>
             </div>
-            {matFormulas.length > 0 && (
-              <div className="form-field span2">
-                <label>เลือกจากสูตรแมทที่บันทึกไว้ (ไม่บังคับ)</label>
+            <div className="pairbox-field-row-substrate">
+              <div className="form-field">
+                <label>วัสดุเพาะ</label>
                 <select
                   className="form-select"
-                  value=""
+                  value={form.substrateFormulaId || ""}
                   onChange={(e) => {
                     const mf = matFormulas.find((m) => m.id === e.target.value);
-                    if (!mf) return;
-                    const mush = mushroomTypes.find((m) => m.id === mf.mushroomTypeId);
-                    const parts = [mf.name];
-                    if (mush) parts.push(mush.name);
-                    if (mf.additives.length) parts.push(mf.additives.join(", "));
-                    setForm((prev) => ({ ...prev, substrateType: parts.join(" · ") }));
+                    const text = mf ? [mf.name, (mf.additives || []).map((a) => `${a.name}${a.weight ? ` ${a.weight}g` : ""}`).join(", ")].filter(Boolean).join(" · ") : "";
+                    setForm((prev) => ({ ...prev, substrateFormulaId: e.target.value, substrateType: text }));
                   }}
                 >
                   <option value="">— เลือกสูตรแมท —</option>
                   {matFormulas.map((mf) => <option key={mf.id} value={mf.id}>{mf.name}</option>)}
                 </select>
               </div>
-            )}
-            <div className="pairbox-field-row-substrate">
-              <div className="form-field"><label>วัสดุเพาะ</label><input className="form-input" placeholder="เช่น Premium Mat สูตร L3, มาตรฐาน EU" value={form.substrateType} onChange={(e) => setForm({ ...form, substrateType: e.target.value })} /></div>
               <div className="form-field"><label>ขนาด (L)</label><input className="form-input" type="number" min="0" step="0.5" placeholder="เช่น 5" value={form.boxSizeL} onChange={(e) => setForm({ ...form, boxSizeL: e.target.value })} /></div>
             </div>
             <div className="form-field span2">
@@ -3038,19 +3031,21 @@ function Settings({ enclosures, setEnclosures, mushroomTypes, setMushroomTypes, 
     setMushroomTypes((prev) => prev.filter((m) => m.id !== id));
   };
 
-  // Mat formulas — user-defined recipes: a name, an optional mushroom type, and a free list of
-  // additives/supplements. These can be picked from the "จัดกล่องเพาะ" form in Breeding.
-  const [formulaModal, setFormulaModal] = useState(null); // { id?, name, mushroomTypeId, additives: [] }
-  const [additiveDraft, setAdditiveDraft] = useState("");
-  const openNewFormula = () => setFormulaModal({ name: "", mushroomTypeId: "", additives: [] });
-  const openEditFormula = (f) => setFormulaModal({ ...f });
+  // Mat formulas — user-defined recipes: a name and a free list of additives/supplements (each
+  // with its own weight in grams). These can be picked from the "จัดกล่องเพาะ" form in Breeding.
+  // Mushroom type is managed as its own separate, independent setting (not part of a formula).
+  const [formulaModal, setFormulaModal] = useState(null); // { id?, name, additives: [{id,name,weight}] }
+  const [additiveNameDraft, setAdditiveNameDraft] = useState("");
+  const [additiveWeightDraft, setAdditiveWeightDraft] = useState("");
+  const openNewFormula = () => setFormulaModal({ name: "", additives: [] });
+  const openEditFormula = (f) => setFormulaModal({ id: f.id, name: f.name, additives: (f.additives || []).map((a) => ({ ...a })) });
   const addAdditive = () => {
-    const val = additiveDraft.trim();
-    if (!val || !formulaModal) return;
-    setFormulaModal((prev) => ({ ...prev, additives: [...prev.additives, val] }));
-    setAdditiveDraft("");
+    const name = additiveNameDraft.trim();
+    if (!name || !formulaModal) return;
+    setFormulaModal((prev) => ({ ...prev, additives: [...prev.additives, { id: uid("ADD"), name, weight: additiveWeightDraft.trim() }] }));
+    setAdditiveNameDraft(""); setAdditiveWeightDraft("");
   };
-  const removeAdditive = (i) => setFormulaModal((prev) => ({ ...prev, additives: prev.additives.filter((_, idx) => idx !== i) }));
+  const removeAdditive = (id) => setFormulaModal((prev) => ({ ...prev, additives: prev.additives.filter((a) => a.id !== id) }));
   const saveFormula = () => {
     if (!formulaModal || !formulaModal.name.trim()) return;
     setMatFormulas((prev) => {
@@ -3115,10 +3110,8 @@ function Settings({ enclosures, setEnclosures, mushroomTypes, setMushroomTypes, 
       )}
 
       <div className="card" style={{ marginTop: 20 }}>
-        <div className="panel-title"><span className="tag-dot" />สูตรแมท</div>
-        <div className="recent-meta" style={{ marginBottom: 14 }}>สร้างสูตรแมทของตัวเอง (เห็ด + สารเติมแต่ง) ไว้เลือกใช้ตอนจัดกล่องเพาะได้ทันที</div>
-
-        <div className="form-section-label" style={{ marginTop: 0 }}>ชนิดเห็ดที่ใช้ได้</div>
+        <div className="panel-title"><span className="tag-dot" />เห็ด</div>
+        <div className="recent-meta" style={{ marginBottom: 14 }}>ชนิดเห็ด/เชื้อราที่ใช้จัดถังเพาะหรือเป็นอาหารตัวอ่อน</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
           {mushroomTypes.map((m) => (
             editingMushroomId === m.id ? (
@@ -3135,35 +3128,36 @@ function Settings({ enclosures, setEnclosures, mushroomTypes, setMushroomTypes, 
             )
           ))}
         </div>
-        <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
+        <div style={{ display: "flex", gap: 6 }}>
           <input className="form-input" placeholder="เพิ่มชนิดเห็ดใหม่" value={newMushroomName} onChange={(e) => setNewMushroomName(e.target.value)} />
           <button className="btn btn-sm" onClick={addMushroomType} disabled={!newMushroomName.trim()}><Plus size={12} /> เพิ่ม</button>
         </div>
+      </div>
 
-        <div className="form-section-label" style={{ marginTop: 0 }}>สูตรแมทที่บันทึกไว้</div>
+      <div className="card" style={{ marginTop: 20 }}>
+        <div className="panel-title"><span className="tag-dot" />สูตรแมท</div>
+        <div className="recent-meta" style={{ marginBottom: 14 }}>สร้างสูตรแมทของตัวเอง (สารเติมแต่ง + น้ำหนัก) ไว้เลือกใช้ตอนจัดกล่องเพาะได้ทันที</div>
+
         {matFormulas.length === 0 ? (
           <div className="empty-state" style={{ padding: "20px 0" }}><div>ยังไม่มีสูตรแมท — สร้างสูตรแรกได้เลย</div></div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
-            {matFormulas.map((mf) => {
-              const mush = mushroomTypes.find((m) => m.id === mf.mushroomTypeId);
-              return (
-                <div key={mf.id} className="enclosure-card" style={{ marginBottom: 0 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <div>
-                      <div style={{ fontWeight: 600 }}>{mf.name}</div>
-                      <div className="recent-meta">
-                        {mush ? `เห็ด: ${mush.name}` : "ไม่ใช้เห็ด"}{mf.additives.length > 0 ? ` · สารเติมแต่ง: ${mf.additives.join(", ")}` : ""}
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button className="btn btn-sm" onClick={() => openEditFormula(mf)}><Pencil size={12} /></button>
-                      <button className="btn btn-sm btn-danger" onClick={() => removeFormula(mf.id)}><Trash2 size={12} /></button>
+            {matFormulas.map((mf) => (
+              <div key={mf.id} className="enclosure-card" style={{ marginBottom: 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{mf.name}</div>
+                    <div className="recent-meta">
+                      {(mf.additives || []).length > 0 ? mf.additives.map((a) => `${a.name}${a.weight ? ` ${a.weight}g` : ""}`).join(", ") : "ยังไม่มีสารเติมแต่ง"}
                     </div>
                   </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button className="btn btn-sm" onClick={() => openEditFormula(mf)}><Pencil size={12} /></button>
+                    <button className="btn btn-sm btn-danger" onClick={() => removeFormula(mf.id)}><Trash2 size={12} /></button>
+                  </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
         <button className="btn btn-sm btn-primary" onClick={openNewFormula}><Plus size={12} /> เพิ่มสูตรแมทใหม่</button>
@@ -3179,22 +3173,19 @@ function Settings({ enclosures, setEnclosures, mushroomTypes, setMushroomTypes, 
             <div className="form-grid">
               <div className="form-field span2"><label>ชื่อสูตร</label><input className="form-input" placeholder="เช่น สูตรกวางดาว L3" value={formulaModal.name} onChange={(e) => setFormulaModal({ ...formulaModal, name: e.target.value })} /></div>
               <div className="form-field span2">
-                <label>ชนิดเห็ด (ถ้าใช้)</label>
-                <select className="form-select" value={formulaModal.mushroomTypeId} onChange={(e) => setFormulaModal({ ...formulaModal, mushroomTypeId: e.target.value })}>
-                  <option value="">— ไม่ใช้เห็ด —</option>
-                  {mushroomTypes.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-                </select>
-              </div>
-              <div className="form-field span2">
                 <label>สารเติมแต่ง</label>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                  {formulaModal.additives.map((a, i) => (
-                    <span key={i} className="specimen-tag mono species-chip">{a}<XIcon size={11} style={{ cursor: "pointer", marginLeft: 4 }} onClick={() => removeAdditive(i)} /></span>
+                  {formulaModal.additives.map((a) => (
+                    <span key={a.id} className="specimen-tag mono species-chip">
+                      {a.name}{a.weight ? ` ${a.weight}g` : ""}
+                      <XIcon size={11} style={{ cursor: "pointer", marginLeft: 4 }} onClick={() => removeAdditive(a.id)} />
+                    </span>
                   ))}
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <input className="form-input" placeholder="เช่น รำข้าว, น้ำตาลทรายแดง" value={additiveDraft} onChange={(e) => setAdditiveDraft(e.target.value)} />
-                  <button type="button" className="btn btn-sm" onClick={addAdditive} disabled={!additiveDraft.trim()}><Plus size={12} /></button>
+                  <input className="form-input" style={{ flex: 2 }} placeholder="เช่น รำข้าว" value={additiveNameDraft} onChange={(e) => setAdditiveNameDraft(e.target.value)} />
+                  <input className="form-input" style={{ flex: 1 }} type="number" min="0" step="0.1" placeholder="น้ำหนัก (g)" value={additiveWeightDraft} onChange={(e) => setAdditiveWeightDraft(e.target.value)} />
+                  <button type="button" className="btn btn-sm" onClick={addAdditive} disabled={!additiveNameDraft.trim()}><Plus size={12} /></button>
                 </div>
               </div>
             </div>
@@ -3348,7 +3339,7 @@ function App() {
       <div className="jod-main">
         {tab === "dashboard" && <Dashboard beetles={beetles} pairings={pairings} enclosures={enclosures} tubs={tubs} catalog={catalog} setTab={setTab} theme={theme} />}
         {tab === "beetles" && <MyBeetles beetles={beetles} setBeetles={setBeetles} catalog={catalog} setCatalog={setCatalog} sourceCatalog={sourceCatalog} setSourceCatalog={setSourceCatalog} theme={theme} />}
-        {tab === "breeding" && <Breeding beetles={beetles} setBeetles={setBeetles} pairings={pairings} setPairings={setPairings} tubs={tubs} setTubs={setTubs} enclosures={enclosures} catalog={catalog} matFormulas={matFormulas} mushroomTypes={mushroomTypes} />}
+        {tab === "breeding" && <Breeding beetles={beetles} setBeetles={setBeetles} pairings={pairings} setPairings={setPairings} tubs={tubs} setTubs={setTubs} enclosures={enclosures} catalog={catalog} matFormulas={matFormulas} />}
         {tab === "settings" && <Settings enclosures={enclosures} setEnclosures={setEnclosures} mushroomTypes={mushroomTypes} setMushroomTypes={setMushroomTypes} matFormulas={matFormulas} setMatFormulas={setMatFormulas} />}
       </div>
     </div>

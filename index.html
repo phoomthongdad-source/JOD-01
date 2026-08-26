@@ -2011,7 +2011,7 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, sourceCatalog, setS
               </div>
               <div className="form-field span2">
                 <button type="button" className={`btn btn-sm ${showMatMushroom ? "btn-active" : ""}`} onClick={() => setShowMatMushroom((v) => !v)}>
-                  🍄 ตัวเลือกการใช้เห็ด
+                  <Plus size={12} /> ตัวเลือกการใช้เห็ด
                 </button>
                 {showMatMushroom && (mushroomTypes || []).length === 0 && (
                   <div className="form-hint">ยังไม่มีชนิดเห็ดในระบบ — ไปเพิ่มได้ที่ SETTINGS → เห็ด</div>

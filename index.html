@@ -472,9 +472,10 @@ const { useState, useEffect, useMemo, useRef } = React;
 
 /* ------------------------------ Icon set ------------------------------ */
 
-function Icon({ size = 16, children, viewBox = "0 0 24 24", style, className }) {
+function Icon({ size = 16, children, viewBox = "0 0 24 24", style, className, onClick, title }) {
   return (
-    <svg width={size} height={size} viewBox={viewBox} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={style} className={className}>
+    <svg width={size} height={size} viewBox={viewBox} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={style} className={className} onClick={onClick}>
+      {title && <title>{title}</title>}
       {children}
     </svg>
   );

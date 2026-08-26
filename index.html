@@ -1461,7 +1461,7 @@ function GrowthChart({ entries }) {
 }
 
 
-function BeetleForm({ initial, beetles, catalog, setCatalog, sourceCatalog, setSourceCatalog, onSave, onClose }) {
+function BeetleForm({ initial, beetles, catalog, setCatalog, sourceCatalog, setSourceCatalog, mushroomTypes, onSave, onClose }) {
   const [f, setF] = useState(initial);
   const [autoId, setAutoId] = useState(false);
   const fileInputRef = useRef(null);
@@ -1622,6 +1622,9 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, sourceCatalog, setS
   const [newMatWeight, setNewMatWeight] = useState("");
   const [newMatStage, setNewMatStage] = useState(f.stage);
   const [newMatJarSize, setNewMatJarSize] = useState("");
+  const [showMatMushroom, setShowMatMushroom] = useState(false);
+  const [newMatMushroomId, setNewMatMushroomId] = useState("");
+  const [newMatMushroomDate, setNewMatMushroomDate] = useState(todayISO());
   const [newMatPhoto, setNewMatPhoto] = useState("");
   const matPhotoInputRef = useRef(null);
   const caliperPhotoInputRef = useRef(null);
@@ -1641,13 +1644,16 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, sourceCatalog, setS
   const addMatChange = () => {
     const w = newMatWeight.trim();
     if (!newMatDate || w === "") return;
-    const entry = { id: uid("MAT"), date: newMatDate, weight: Number(w), stage: newMatStage, photoUrl: newMatPhoto, jarSizeL: newMatJarSize.trim() };
+    const entry = {
+      id: uid("MAT"), date: newMatDate, weight: Number(w), stage: newMatStage, photoUrl: newMatPhoto, jarSizeL: newMatJarSize.trim(),
+      mushroomTypeId: newMatMushroomId, mushroomDate: newMatMushroomId ? newMatMushroomDate : "",
+    };
     setF((prev) => ({
       ...prev,
       matChanges: [...(prev.matChanges || []), entry].sort((a, b) => a.date.localeCompare(b.date)),
       stage: newMatStage || prev.stage,
     }));
-    setNewMatWeight(""); setNewMatPhoto(""); setNewMatJarSize("");
+    setNewMatWeight(""); setNewMatPhoto(""); setNewMatJarSize(""); setNewMatMushroomId(""); setShowMatMushroom(false);
   };
   const removeMatChange = (id) => setF((prev) => ({ ...prev, matChanges: (prev.matChanges || []).filter((m) => m.id !== id) }));
 
@@ -1893,27 +1899,11 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, sourceCatalog, setS
           </div>
           <div className="form-field">
             <label>สายเลือด/ไลน์ผสม</label>
-            <select className="form-select" value={LINE_OPTIONS.includes(f.line) ? f.line : (f.line ? "custom" : "")} onChange={(e) => set("line", e.target.value === "custom" ? "" : e.target.value)}>
-              <option value="">— ไม่ระบุ —</option>
-              <optgroup label="CB (Captive Bred)">
-                <option value="CBF1">CBF1</option>
-                <option value="CBF2">CBF2</option>
-                <option value="CBF3">CBF3</option>
-              </optgroup>
-              <optgroup label="WD (Wild Determined)">
-                <option value="WDF1">WDF1</option>
-                <option value="WDF2">WDF2</option>
-                <option value="WDF3">WDF3</option>
-              </optgroup>
-              <option value="custom">— ระบุเอง —</option>
-            </select>
+            <input className="form-input" list="line-options" placeholder="เลือกจากรายการ หรือพิมพ์เอง เช่น OX-LINE" value={f.line} onChange={(e) => set("line", e.target.value)} />
+            <datalist id="line-options">
+              {LINE_OPTIONS.map((opt) => <option key={opt} value={opt} />)}
+            </datalist>
           </div>
-          {f.line !== "" && !LINE_OPTIONS.includes(f.line) && (
-            <div className="form-field">
-              <label>ระบุสายเลือด/ไลน์เอง</label>
-              <input className="form-input" placeholder="เช่น OX-LINE" value={f.line} onChange={(e) => set("line", e.target.value)} />
-            </div>
-          )}
 
           <div className="form-section-label">4. Physical Metrics</div>
           <div className="form-field"><label>ขนาดตัวเต็มวัย (mm)</label><input className="form-input" type="number" step="0.1" value={f.sizeMm} onChange={(e) => set("sizeMm", e.target.value)} /></div>
@@ -1982,6 +1972,9 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, sourceCatalog, setS
                           <span className="mono">{m.date}</span>
                           <span className="mono">{m.weight} g</span>
                           {m.jarSizeL && <span className="mono">{m.jarSizeL} L</span>}
+                          {m.mushroomTypeId && (mushroomTypes || []).find((mt) => mt.id === m.mushroomTypeId) && (
+                            <span className="badge">🍄 {(mushroomTypes.find((mt) => mt.id === m.mushroomTypeId) || {}).name}{m.mushroomDate ? ` · ${m.mushroomDate}` : ""}</span>
+                          )}
                           {m.stage && <span className="badge">{(STAGES.find((s) => s.value === m.stage) || {}).label}</span>}
                           <button type="button" className="btn btn-sm" onClick={() => startEditMatChange(m)}><Pencil size={11} /></button>
                           <button type="button" className="btn btn-sm btn-danger" onClick={() => removeMatChange(m.id)}><Trash2 size={11} /></button>
@@ -2014,6 +2007,23 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, sourceCatalog, setS
                     <img src={newMatPhoto} alt="" className="mat-change-thumb" />
                     <button type="button" className="btn btn-sm btn-danger" onClick={() => setNewMatPhoto("")}><XIcon size={11} /></button>
                   </span>
+                )}
+              </div>
+              <div className="form-field span2">
+                <button type="button" className={`btn btn-sm ${showMatMushroom ? "btn-active" : ""}`} onClick={() => setShowMatMushroom((v) => !v)}>
+                  🍄 ตัวเลือกการใช้เห็ด
+                </button>
+                {showMatMushroom && (mushroomTypes || []).length === 0 && (
+                  <div className="form-hint">ยังไม่มีชนิดเห็ดในระบบ — ไปเพิ่มได้ที่ SETTINGS → เห็ด</div>
+                )}
+                {showMatMushroom && (mushroomTypes || []).length > 0 && (
+                  <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                    <select className="form-select" style={{ flex: 1 }} value={newMatMushroomId} onChange={(e) => setNewMatMushroomId(e.target.value)}>
+                      <option value="">— เลือกชนิดเห็ด —</option>
+                      {mushroomTypes.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    </select>
+                    <div className="date-field-wrap" style={{ flex: 1 }}><input className="form-input" type="date" value={newMatMushroomDate} onChange={(e) => setNewMatMushroomDate(e.target.value)} /></div>
+                  </div>
                 )}
               </div>
               <div className="form-field span2">
@@ -2390,7 +2400,7 @@ function JarCard({ beetle, catalog, onInfo, onEdit, onDelete }) {
   );
 }
 
-function MyBeetles({ beetles, setBeetles, catalog, setCatalog, sourceCatalog, setSourceCatalog, theme }) {
+function MyBeetles({ beetles, setBeetles, catalog, setCatalog, sourceCatalog, setSourceCatalog, mushroomTypes, theme }) {
   const [query, setQuery] = useState("");
   const [stageFilter, setStageFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -2543,7 +2553,7 @@ function MyBeetles({ beetles, setBeetles, catalog, setCatalog, sourceCatalog, se
         </div>
       )}
 
-      {modal && <BeetleForm initial={modal === "new" ? emptyBeetle() : { ...emptyBeetle(), ...modal }} beetles={beetles} catalog={catalog} setCatalog={setCatalog} sourceCatalog={sourceCatalog} setSourceCatalog={setSourceCatalog} onSave={save} onClose={() => setModal(null)} />}
+      {modal && <BeetleForm initial={modal === "new" ? emptyBeetle() : { ...emptyBeetle(), ...modal }} beetles={beetles} catalog={catalog} setCatalog={setCatalog} sourceCatalog={sourceCatalog} setSourceCatalog={setSourceCatalog} mushroomTypes={mushroomTypes} onSave={save} onClose={() => setModal(null)} />}
       {profile && <BeetleProfileModal beetle={profile} theme={theme} onClose={() => setProfile(null)} />}
       {showBulk && <BulkLabelModal beetles={selectedBeetles} theme={theme} onClose={() => setShowBulk(false)} />}
       {showScanner && (
@@ -2768,6 +2778,7 @@ function Breeding({ beetles, setBeetles, pairings, setPairings, tubs, setTubs, e
     setTubs((prev) => prev.filter((t) => t.pairingId !== id));
   };
   const enclosureName = (id) => (enclosures.find((e) => e.id === id) || {}).name || "—";
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   const [editTub, setEditTub] = useState(null);
   const saveEditedTub = (tub) => {
@@ -2982,7 +2993,7 @@ function Breeding({ beetles, setBeetles, pairings, setPairings, tubs, setTubs, e
 
                 <div className="beetle-actions">
                   {tub && <button className="btn btn-sm" onClick={() => setEditTub(tub)}><Pencil size={12} /> แก้ไข</button>}
-                  <button className="btn btn-sm btn-danger" onClick={() => removePairing(p.id)}><Trash2 size={12} /> ลบ</button>
+                  <button className="btn btn-sm btn-danger" onClick={() => setConfirmDeleteId(p.id)}><Trash2 size={12} /> ลบ</button>
                 </div>
               </div>
             );
@@ -2991,6 +3002,21 @@ function Breeding({ beetles, setBeetles, pairings, setPairings, tubs, setTubs, e
       )}
 
       {editTub && <TubForm initial={editTub} pairings={pairings} enclosures={enclosures} beetles={beetles} onSave={saveEditedTub} onClose={() => setEditTub(null)} />}
+
+      {confirmDeleteId && (
+        <div className="modal-backdrop" onClick={(ev) => ev.target === ev.currentTarget && setConfirmDeleteId(null)}>
+          <div className="modal" style={{ maxWidth: 380 }}>
+            <div className="modal-head">
+              <h3>ยืนยันในการลบกล่องเพาะ</h3>
+              <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDeleteId(null)}><XIcon size={16} /></button>
+            </div>
+            <div className="modal-foot">
+              <button className="btn" onClick={() => setConfirmDeleteId(null)}>ยกเลิก</button>
+              <button className="btn btn-danger" onClick={() => { removePairing(confirmDeleteId); setConfirmDeleteId(null); }}><Trash2 size={14} /> ยืนยัน</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -3012,6 +3038,7 @@ function Settings({ enclosures, setEnclosures, mushroomTypes, setMushroomTypes, 
 
   // Mushroom types — small editable catalog (add/edit/delete), reused across mat formulas.
   const [newMushroomName, setNewMushroomName] = useState("");
+  const [showAddMushroom, setShowAddMushroom] = useState(false);
   const [editingMushroomId, setEditingMushroomId] = useState(null);
   const [mushroomDraft, setMushroomDraft] = useState("");
   const addMushroomType = () => {
@@ -3046,6 +3073,16 @@ function Settings({ enclosures, setEnclosures, mushroomTypes, setMushroomTypes, 
     setAdditiveNameDraft(""); setAdditiveWeightDraft("");
   };
   const removeAdditive = (id) => setFormulaModal((prev) => ({ ...prev, additives: prev.additives.filter((a) => a.id !== id) }));
+  const [editingAdditiveId, setEditingAdditiveId] = useState(null);
+  const [editAdditiveName, setEditAdditiveName] = useState("");
+  const [editAdditiveWeight, setEditAdditiveWeight] = useState("");
+  const startEditAdditive = (a) => { setEditingAdditiveId(a.id); setEditAdditiveName(a.name); setEditAdditiveWeight(a.weight || ""); };
+  const saveEditAdditive = () => {
+    const name = editAdditiveName.trim();
+    if (!name) return;
+    setFormulaModal((prev) => ({ ...prev, additives: prev.additives.map((a) => (a.id === editingAdditiveId ? { ...a, name, weight: editAdditiveWeight.trim() } : a)) }));
+    setEditingAdditiveId(null);
+  };
   const saveFormula = () => {
     if (!formulaModal || !formulaModal.name.trim()) return;
     setMatFormulas((prev) => {
@@ -3129,8 +3166,12 @@ function Settings({ enclosures, setEnclosures, mushroomTypes, setMushroomTypes, 
           ))}
         </div>
         <div style={{ display: "flex", gap: 6 }}>
-          <input className="form-input" placeholder="เพิ่มชนิดเห็ดใหม่" value={newMushroomName} onChange={(e) => setNewMushroomName(e.target.value)} />
-          <button className="btn btn-sm" onClick={addMushroomType} disabled={!newMushroomName.trim()}><Plus size={12} /> เพิ่ม</button>
+          {showAddMushroom && <input className="form-input" placeholder="เพิ่มชนิดเห็ดใหม่" value={newMushroomName} onChange={(e) => setNewMushroomName(e.target.value)} autoFocus />}
+          {showAddMushroom ? (
+            <button className="btn btn-sm btn-primary" onClick={() => { addMushroomType(); setShowAddMushroom(false); }} disabled={!newMushroomName.trim()}>เพิ่ม</button>
+          ) : (
+            <button className="btn btn-sm" title="เพิ่มชนิดเห็ดใหม่" onClick={() => setShowAddMushroom(true)}><Plus size={12} /></button>
+          )}
         </div>
       </div>
 
@@ -3176,10 +3217,19 @@ function Settings({ enclosures, setEnclosures, mushroomTypes, setMushroomTypes, 
                 <label>สารเติมแต่ง</label>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
                   {formulaModal.additives.map((a) => (
-                    <span key={a.id} className="specimen-tag mono species-chip">
-                      {a.name}{a.weight ? ` ${a.weight}g` : ""}
-                      <XIcon size={11} style={{ cursor: "pointer", marginLeft: 4 }} onClick={() => removeAdditive(a.id)} />
-                    </span>
+                    editingAdditiveId === a.id ? (
+                      <span key={a.id} style={{ display: "inline-flex", gap: 4 }}>
+                        <input className="form-input" style={{ width: 100 }} value={editAdditiveName} onChange={(e) => setEditAdditiveName(e.target.value)} />
+                        <input className="form-input" style={{ width: 70 }} type="number" min="0" step="0.1" placeholder="g" value={editAdditiveWeight} onChange={(e) => setEditAdditiveWeight(e.target.value)} />
+                        <button className="btn btn-sm btn-primary" onClick={saveEditAdditive} disabled={!editAdditiveName.trim()}>บันทึก</button>
+                      </span>
+                    ) : (
+                      <span key={a.id} className="specimen-tag mono species-chip">
+                        {a.name}{a.weight ? ` ${a.weight}g` : ""}
+                        <Pencil size={11} style={{ cursor: "pointer", marginLeft: 6 }} onClick={() => startEditAdditive(a)} />
+                        <XIcon size={11} style={{ cursor: "pointer", marginLeft: 4 }} onClick={() => removeAdditive(a.id)} />
+                      </span>
+                    )
                   ))}
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
@@ -3338,7 +3388,7 @@ function App() {
       />
       <div className="jod-main">
         {tab === "dashboard" && <Dashboard beetles={beetles} pairings={pairings} enclosures={enclosures} tubs={tubs} catalog={catalog} setTab={setTab} theme={theme} />}
-        {tab === "beetles" && <MyBeetles beetles={beetles} setBeetles={setBeetles} catalog={catalog} setCatalog={setCatalog} sourceCatalog={sourceCatalog} setSourceCatalog={setSourceCatalog} theme={theme} />}
+        {tab === "beetles" && <MyBeetles beetles={beetles} setBeetles={setBeetles} catalog={catalog} setCatalog={setCatalog} sourceCatalog={sourceCatalog} setSourceCatalog={setSourceCatalog} mushroomTypes={mushroomTypes} theme={theme} />}
         {tab === "breeding" && <Breeding beetles={beetles} setBeetles={setBeetles} pairings={pairings} setPairings={setPairings} tubs={tubs} setTubs={setTubs} enclosures={enclosures} catalog={catalog} matFormulas={matFormulas} />}
         {tab === "settings" && <Settings enclosures={enclosures} setEnclosures={setEnclosures} mushroomTypes={mushroomTypes} setMushroomTypes={setMushroomTypes} matFormulas={matFormulas} setMatFormulas={setMatFormulas} />}
       </div>

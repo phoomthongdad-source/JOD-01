@@ -776,6 +776,21 @@ function formatElapsed(days) {
   return `${Math.floor(days / 30)} เดือน`;
 }
 
+/** Formats elapsed days as "__ สัปดาห์ / __ วัน" (weeks plus the leftover days) once past a week,
+ *  keeping the week display but always showing the remainder days alongside it — used specifically
+ *  for the rearing-box (pairing) day counter. Under a week, falls back to plain days. */
+function formatElapsedWeeksDays(days) {
+  if (days === null || days === undefined) return "";
+  if (days === 0) return "วันนี้";
+  if (days < 7) return `${String(days).padStart(2, "0")} วัน`;
+  if (days < 30) {
+    const weeks = Math.floor(days / 7);
+    const rem = days % 7;
+    return `${weeks} สัปดาห์ / ${rem} วัน`;
+  }
+  return `${Math.floor(days / 30)} เดือน`;
+}
+
 /** Estimated egg-laying progress dot count — starts at 5 on day 0, grows by 1 per day, caps at 25. */
 function layingProgressDots(days) {
   if (days === null) return 5;
@@ -1462,7 +1477,7 @@ function GrowthChart({ entries }) {
 }
 
 
-function BeetleForm({ initial, beetles, catalog, setCatalog, sourceCatalog, setSourceCatalog, mushroomTypes, onSave, onClose }) {
+function BeetleForm({ initial, beetles, catalog, setCatalog, sourceCatalog, setSourceCatalog, mushroomTypes, matFormulas, onSave, onClose }) {
   const [f, setF] = useState(initial);
   const [autoId, setAutoId] = useState(false);
   const fileInputRef = useRef(null);
@@ -1623,6 +1638,7 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, sourceCatalog, setS
   const [newMatWeight, setNewMatWeight] = useState("");
   const [newMatStage, setNewMatStage] = useState(f.stage);
   const [newMatJarSize, setNewMatJarSize] = useState("");
+  const [newMatFormulaId, setNewMatFormulaId] = useState("");
   const [showMatMushroom, setShowMatMushroom] = useState(false);
   const [newMatMushroomId, setNewMatMushroomId] = useState("");
   const [newMatMushroomDate, setNewMatMushroomDate] = useState(todayISO());
@@ -1647,14 +1663,14 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, sourceCatalog, setS
     if (!newMatDate || w === "") return;
     const entry = {
       id: uid("MAT"), date: newMatDate, weight: Number(w), stage: newMatStage, photoUrl: newMatPhoto, jarSizeL: newMatJarSize.trim(),
-      mushroomTypeId: newMatMushroomId, mushroomDate: newMatMushroomId ? newMatMushroomDate : "",
+      mushroomTypeId: newMatMushroomId, mushroomDate: newMatMushroomId ? newMatMushroomDate : "", matFormulaId: newMatFormulaId,
     };
     setF((prev) => ({
       ...prev,
       matChanges: [...(prev.matChanges || []), entry].sort((a, b) => a.date.localeCompare(b.date)),
       stage: newMatStage || prev.stage,
     }));
-    setNewMatWeight(""); setNewMatPhoto(""); setNewMatJarSize(""); setNewMatMushroomId(""); setShowMatMushroom(false);
+    setNewMatWeight(""); setNewMatPhoto(""); setNewMatJarSize(""); setNewMatMushroomId(""); setShowMatMushroom(false); setNewMatFormulaId("");
   };
   const removeMatChange = (id) => setF((prev) => ({ ...prev, matChanges: (prev.matChanges || []).filter((m) => m.id !== id) }));
 
@@ -1973,6 +1989,9 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, sourceCatalog, setS
                           <span className="mono">{m.date}</span>
                           <span className="mono">{m.weight} g</span>
                           {m.jarSizeL && <span className="mono">{m.jarSizeL} L</span>}
+                          {m.matFormulaId && (matFormulas || []).find((mf) => mf.id === m.matFormulaId) && (
+                            <span className="badge">{(matFormulas.find((mf) => mf.id === m.matFormulaId) || {}).name}</span>
+                          )}
                           {m.mushroomTypeId && (mushroomTypes || []).find((mt) => mt.id === m.mushroomTypeId) && (
                             <span className="badge">🍄 {(mushroomTypes.find((mt) => mt.id === m.mushroomTypeId) || {}).name}{m.mushroomDate ? ` · ${m.mushroomDate}` : ""}</span>
                           )}
@@ -1991,6 +2010,15 @@ function BeetleForm({ initial, beetles, catalog, setCatalog, sourceCatalog, setS
                 <label>ขนาดกระปุกเลี้ยง (L)</label>
                 <input className="form-input" type="number" step="0.1" min="0" placeholder="เช่น 0.5" value={newMatJarSize} onChange={(e) => setNewMatJarSize(e.target.value)} />
               </div>
+              {(matFormulas || []).length > 0 && (
+                <div className="form-field">
+                  <label>สูตรแมทที่ใช้</label>
+                  <select className="form-select" value={newMatFormulaId} onChange={(e) => setNewMatFormulaId(e.target.value)}>
+                    <option value="">— ไม่ระบุ —</option>
+                    {matFormulas.map((mf) => <option key={mf.id} value={mf.id}>{mf.name}</option>)}
+                  </select>
+                </div>
+              )}
               <div className="form-field">
                 <label>ระยะ ณ วันนี้ (ปรับได้)</label>
                 <select className="form-select" value={newMatStage} onChange={(e) => setNewMatStage(e.target.value)}>
@@ -2370,7 +2398,9 @@ function JarSection({ beetle }) {
 }
 
 function JarCard({ beetle, catalog, onInfo, onEdit, onDelete }) {
-  const jarSizeLabel = beetle.jarSize === "ระบุเอง" ? (beetle.jarSizeCustom || "ระบุเอง") : beetle.jarSize;
+  const sortedMatChanges = [...(beetle.matChanges || [])].sort((a, b) => a.date.localeCompare(b.date));
+  const latestJarSize = [...sortedMatChanges].reverse().find((m) => m.jarSizeL)?.jarSizeL || "";
+  const jarSizeLabel = latestJarSize ? `${latestJarSize} L` : "";
   const categoryLabel = (catalog && catalog[beetle.categoryId] || {}).label;
   return (
     <div className="box-card">
@@ -2387,7 +2417,7 @@ function JarCard({ beetle, catalog, onInfo, onEdit, onDelete }) {
         </div>
       )}
       <div className="box-card-rows">
-        <div className="box-card-row"><BoxIcon size={14} /><span>{jarSizeLabel || "ยังไม่ระบุขนาดกระปุก"}</span></div>
+        {jarSizeLabel && <div className="box-card-row"><BoxIcon size={14} /><span>{jarSizeLabel}</span></div>}
         {beetle.foodType && <div className="box-card-row"><SubstrateIcon size={14} /><span>{beetle.foodType}</span></div>}
         {beetle.weightGrams ? <div className="box-card-row"><JellyIcon size={14} /><span>น้ำหนัก {beetle.weightGrams} g</span></div> : null}
         {beetle.temp ? <div className="box-card-row"><Thermometer size={14} /><span>{beetle.temp}°C</span></div> : null}
@@ -2401,11 +2431,11 @@ function JarCard({ beetle, catalog, onInfo, onEdit, onDelete }) {
   );
 }
 
-function MyBeetles({ beetles, setBeetles, catalog, setCatalog, sourceCatalog, setSourceCatalog, mushroomTypes, theme }) {
+function MyBeetles({ beetles, setBeetles, catalog, setCatalog, sourceCatalog, setSourceCatalog, mushroomTypes, matFormulas, theme }) {
   const [query, setQuery] = useState("");
   const [stageFilter, setStageFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [boxGroup, setBoxGroup] = useState("adult"); // adult | larva — box view only, per-stage grouping
+  const [boxGroup, setBoxGroup] = useState("adult"); // adult | egg | larva | pupa — box view only, per-stage grouping
   const [viewMode, setViewMode] = useState("box"); // list | box
   const [modal, setModal] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -2420,7 +2450,8 @@ function MyBeetles({ beetles, setBeetles, catalog, setCatalog, sourceCatalog, se
     const matchesCategory = categoryFilter === "all" || b.categoryId === categoryFilter;
     return matchesQuery && matchesStage && matchesCategory;
   });
-  const boxViewFiltered = filtered.filter((b) => (boxGroup === "adult" ? b.stage === "adult" : b.stage !== "adult"));
+  const BOX_GROUP_STAGES = { adult: ["adult"], egg: ["egg"], larva: ["l1", "l2", "l3"], pupa: ["pupa"] };
+  const boxViewFiltered = filtered.filter((b) => BOX_GROUP_STAGES[boxGroup].includes(b.stage));
 
   const save = (beetle) => {
     setBeetles((prev) => {
@@ -2496,7 +2527,9 @@ function MyBeetles({ beetles, setBeetles, catalog, setCatalog, sourceCatalog, se
       {viewMode === "box" && (
         <div className="box-group-tabs">
           <button className={`btn btn-sm ${boxGroup === "adult" ? "btn-active" : ""}`} onClick={() => setBoxGroup("adult")}>ตัวเต็มวัย ({filtered.filter((b) => b.stage === "adult").length})</button>
-          <button className={`btn btn-sm ${boxGroup === "larva" ? "btn-active" : ""}`} onClick={() => setBoxGroup("larva")}>ตัวอ่อน — ไข่/ตัวอ่อน/ดักแด้ ({filtered.filter((b) => b.stage !== "adult").length})</button>
+          <button className={`btn btn-sm ${boxGroup === "egg" ? "btn-active" : ""}`} onClick={() => setBoxGroup("egg")}>ไข่ ({filtered.filter((b) => b.stage === "egg").length})</button>
+          <button className={`btn btn-sm ${boxGroup === "larva" ? "btn-active" : ""}`} onClick={() => setBoxGroup("larva")}>ตัวอ่อน — L1/L2/L3 ({filtered.filter((b) => ["l1", "l2", "l3"].includes(b.stage)).length})</button>
+          <button className={`btn btn-sm ${boxGroup === "pupa" ? "btn-active" : ""}`} onClick={() => setBoxGroup("pupa")}>ดักแด้ ({filtered.filter((b) => b.stage === "pupa").length})</button>
         </div>
       )}
 
@@ -2554,7 +2587,7 @@ function MyBeetles({ beetles, setBeetles, catalog, setCatalog, sourceCatalog, se
         </div>
       )}
 
-      {modal && <BeetleForm initial={modal === "new" ? emptyBeetle() : { ...emptyBeetle(), ...modal }} beetles={beetles} catalog={catalog} setCatalog={setCatalog} sourceCatalog={sourceCatalog} setSourceCatalog={setSourceCatalog} mushroomTypes={mushroomTypes} onSave={save} onClose={() => setModal(null)} />}
+      {modal && <BeetleForm initial={modal === "new" ? emptyBeetle() : { ...emptyBeetle(), ...modal }} beetles={beetles} catalog={catalog} setCatalog={setCatalog} sourceCatalog={sourceCatalog} setSourceCatalog={setSourceCatalog} mushroomTypes={mushroomTypes} matFormulas={matFormulas} onSave={save} onClose={() => setModal(null)} />}
       {profile && <BeetleProfileModal beetle={profile} theme={theme} onClose={() => setProfile(null)} />}
       {showBulk && <BulkLabelModal beetles={selectedBeetles} theme={theme} onClose={() => setShowBulk(false)} />}
       {showScanner && (
@@ -3037,22 +3070,18 @@ function Settings({ enclosures, setEnclosures, mushroomTypes, setMushroomTypes, 
   };
   const remove = (id) => setEnclosures((prev) => prev.filter((e) => e.id !== id));
 
-  // Mushroom types — small editable catalog (add/edit/delete), reused across mat formulas.
-  const [newMushroomName, setNewMushroomName] = useState("");
-  const [showAddMushroom, setShowAddMushroom] = useState(false);
-  const [editingMushroomId, setEditingMushroomId] = useState(null);
-  const [mushroomDraft, setMushroomDraft] = useState("");
-  const addMushroomType = () => {
-    const name = newMushroomName.trim();
-    if (!name) return;
-    setMushroomTypes((prev) => [...prev, { id: uid("MUSH"), name }]);
-    setNewMushroomName("");
-  };
-  const startEditMushroom = (m) => { setEditingMushroomId(m.id); setMushroomDraft(m.name); };
-  const saveEditMushroom = () => {
-    const name = mushroomDraft.trim();
-    if (name) setMushroomTypes((prev) => prev.map((m) => (m.id === editingMushroomId ? { ...m, name } : m)));
-    setEditingMushroomId(null);
+  // Mushroom types — small editable catalog (add/edit/delete via modal, reused across mat
+  // formulas), matching the same modal pattern as mat formulas below.
+  const [mushroomModal, setMushroomModal] = useState(null); // { id?, name } | null
+  const openNewMushroom = () => setMushroomModal({ name: "" });
+  const openEditMushroom = (m) => setMushroomModal({ id: m.id, name: m.name });
+  const saveMushroom = () => {
+    if (!mushroomModal || !mushroomModal.name.trim()) return;
+    setMushroomTypes((prev) => {
+      if (mushroomModal.id) return prev.map((m) => (m.id === mushroomModal.id ? { ...m, name: mushroomModal.name.trim() } : m));
+      return [...prev, { id: uid("MUSH"), name: mushroomModal.name.trim() }];
+    });
+    setMushroomModal(null);
   };
   const removeMushroomType = (id) => {
     if (!window.confirm("ลบชนิดเห็ดนี้?")) return;
@@ -3150,31 +3179,43 @@ function Settings({ enclosures, setEnclosures, mushroomTypes, setMushroomTypes, 
       <div className="card" style={{ marginTop: 20 }}>
         <div className="panel-title"><span className="tag-dot" />เห็ด</div>
         <div className="recent-meta" style={{ marginBottom: 14 }}>ชนิดเห็ด/เชื้อราที่ใช้จัดถังเพาะหรือเป็นอาหารตัวอ่อน</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
-          {mushroomTypes.map((m) => (
-            editingMushroomId === m.id ? (
-              <span key={m.id} style={{ display: "inline-flex", gap: 4 }}>
-                <input className="form-input" style={{ width: 120 }} value={mushroomDraft} onChange={(e) => setMushroomDraft(e.target.value)} />
-                <button className="btn btn-sm btn-primary" onClick={saveEditMushroom}>บันทึก</button>
-              </span>
-            ) : (
-              <span key={m.id} className="specimen-tag mono species-chip">
-                {m.name}
-                <Pencil size={11} style={{ cursor: "pointer", marginLeft: 6 }} onClick={() => startEditMushroom(m)} />
-                <XIcon size={11} style={{ cursor: "pointer", marginLeft: 4 }} onClick={() => removeMushroomType(m.id)} />
-              </span>
-            )
-          ))}
-        </div>
-        <div style={{ display: "flex", gap: 6 }}>
-          {showAddMushroom && <input className="form-input" placeholder="เพิ่มชนิดเห็ดใหม่" value={newMushroomName} onChange={(e) => setNewMushroomName(e.target.value)} autoFocus />}
-          {showAddMushroom ? (
-            <button className="btn btn-sm btn-primary" onClick={() => { addMushroomType(); setShowAddMushroom(false); }} disabled={!newMushroomName.trim()}>เพิ่ม</button>
-          ) : (
-            <button className="btn btn-sm" title="เพิ่มชนิดเห็ดใหม่" onClick={() => setShowAddMushroom(true)}><Plus size={12} /></button>
-          )}
-        </div>
+        {mushroomTypes.length === 0 ? (
+          <div className="empty-state" style={{ padding: "20px 0" }}><div>ยังไม่มีชนิดเห็ด — เพิ่มรายการแรกได้เลย</div></div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+            {mushroomTypes.map((m) => (
+              <div key={m.id} className="enclosure-card" style={{ marginBottom: 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ fontWeight: 600 }}>{m.name}</div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button className="btn btn-sm" onClick={() => openEditMushroom(m)}><Pencil size={12} /></button>
+                    <button className="btn btn-sm btn-danger" onClick={() => removeMushroomType(m.id)}><Trash2 size={12} /></button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <button className="btn btn-sm btn-primary" onClick={openNewMushroom}><Plus size={12} /> เพิ่มชนิดเห็ดใหม่</button>
       </div>
+
+      {mushroomModal && (
+        <div className="modal-backdrop" onClick={(ev) => ev.target === ev.currentTarget && setMushroomModal(null)}>
+          <div className="modal" style={{ maxWidth: 380 }}>
+            <div className="modal-head">
+              <h3>{mushroomModal.id ? "แก้ไขชนิดเห็ด" : "เพิ่มชนิดเห็ดใหม่"}</h3>
+              <button className="btn btn-ghost btn-sm" onClick={() => setMushroomModal(null)}><XIcon size={16} /></button>
+            </div>
+            <div className="form-grid">
+              <div className="form-field span2"><label>ชื่อชนิดเห็ด</label><input className="form-input" placeholder="เช่น เห็ดนางรม" value={mushroomModal.name} onChange={(e) => setMushroomModal({ ...mushroomModal, name: e.target.value })} /></div>
+            </div>
+            <div className="modal-foot">
+              <button className="btn" onClick={() => setMushroomModal(null)}>ยกเลิก</button>
+              <button className="btn btn-primary" onClick={saveMushroom} disabled={!mushroomModal.name.trim()}><Save size={14} /> บันทึก</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="card" style={{ marginTop: 20 }}>
         <div className="panel-title"><span className="tag-dot" />สูตรแมท</div>
@@ -3389,7 +3430,7 @@ function App() {
       />
       <div className="jod-main">
         {tab === "dashboard" && <Dashboard beetles={beetles} pairings={pairings} enclosures={enclosures} tubs={tubs} catalog={catalog} setTab={setTab} theme={theme} />}
-        {tab === "beetles" && <MyBeetles beetles={beetles} setBeetles={setBeetles} catalog={catalog} setCatalog={setCatalog} sourceCatalog={sourceCatalog} setSourceCatalog={setSourceCatalog} mushroomTypes={mushroomTypes} theme={theme} />}
+        {tab === "beetles" && <MyBeetles beetles={beetles} setBeetles={setBeetles} catalog={catalog} setCatalog={setCatalog} sourceCatalog={sourceCatalog} setSourceCatalog={setSourceCatalog} mushroomTypes={mushroomTypes} matFormulas={matFormulas} theme={theme} />}
         {tab === "breeding" && <Breeding beetles={beetles} setBeetles={setBeetles} pairings={pairings} setPairings={setPairings} tubs={tubs} setTubs={setTubs} enclosures={enclosures} catalog={catalog} matFormulas={matFormulas} />}
         {tab === "settings" && <Settings enclosures={enclosures} setEnclosures={setEnclosures} mushroomTypes={mushroomTypes} setMushroomTypes={setMushroomTypes} matFormulas={matFormulas} setMatFormulas={setMatFormulas} />}
       </div>
